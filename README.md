@@ -17,6 +17,8 @@ npx skills add vercel-labs/next-skills --skill next-best-practices
   npx playwright install chromium
 ```
 
+- DotNet [skills](https://github.com/dotnet/skills)
+
 - Local
 ```
   ollama launch claude
