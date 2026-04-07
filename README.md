@@ -1,6 +1,5 @@
 # Front End
 * React/Nextjs
-- Install Vercel reaction best practices skills
 ```
 npx skills add vercel-labs/agent-skills
 npx skills add vercel-labs/next-skills --skill next-best-practices
