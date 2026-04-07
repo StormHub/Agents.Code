@@ -1,25 +1,22 @@
-# Setup
+# Front End
+* React/Nextjs
 - Install Vercel reaction best practices skills
 ```
 npx skills add vercel-labs/agent-skills
-```
-  
-- Install Vercel nextjs skills
-```  
 npx skills add vercel-labs/next-skills --skill next-best-practices
 ```
-  
-- Install playwright mcp
-```
-  claude mcp add playwright npx @playwright/mcp@latest
-```
+
+* Playwright mcp
 ```
   npx playwright install chromium
+  claude mcp add playwright npx @playwright/mcp@latest
 ```
 
-- DotNet [skills](https://github.com/dotnet/skills)
+# Backend
+* [DotNet skills](https://github.com/dotnet/skills)
 
-- Local
+# Claude with local 
+* [Official documentation](https://docs.ollama.com/integrations/claude-code)
 ```
   ollama launch claude
 ```
