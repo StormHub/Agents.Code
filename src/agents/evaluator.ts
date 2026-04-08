@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
-import type { HarnessConfig } from "../utils/config.js";
+import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
 import { ARTIFACT_FILES } from "../artifacts/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -49,7 +49,8 @@ or
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.1, // 10% of budget per evaluator round
+      maxBudgetUsd: config.maxBudgetUsd * 0.1,
+      settingSources: config.settingSources,
       mcpServers: {
         playwright: {
           type: "stdio",
@@ -57,7 +58,7 @@ or
           args: ["@playwright/mcp@latest"],
         },
       },
-      env: { ANTHROPIC_API_KEY: config.apiKey },
+      env: buildAgentEnv(config.auth),
     },
   });
 

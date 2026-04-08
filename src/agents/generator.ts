@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
-import type { HarnessConfig } from "../utils/config.js";
+import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
 import { ARTIFACT_FILES } from "../artifacts/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -20,7 +20,6 @@ export async function runGenerator(
 
   log.agent(`Starting generator agent (round ${round})`, { model: config.model });
 
-  // Build the prompt based on which round we're in
   let prompt: string;
 
   if (round === 1) {
@@ -66,8 +65,9 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.35, // 35% of budget per generator round
-      env: { ANTHROPIC_API_KEY: config.apiKey },
+      maxBudgetUsd: config.maxBudgetUsd * 0.35,
+      settingSources: config.settingSources,
+      env: buildAgentEnv(config.auth),
     },
   });
 

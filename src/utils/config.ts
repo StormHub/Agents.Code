@@ -1,28 +1,84 @@
 import "dotenv/config";
 
+export interface AuthConfig {
+  /** Direct API key (ANTHROPIC_API_KEY) */
+  apiKey?: string;
+  /** OAuth/session token (ANTHROPIC_AUTH_TOKEN) */
+  authToken?: string;
+  /** Custom API base URL (ANTHROPIC_BASE_URL) */
+  baseUrl?: string;
+  /** Use Amazon Bedrock (CLAUDE_CODE_USE_BEDROCK=1) */
+  useBedrock?: boolean;
+  /** Use Google Vertex AI (CLAUDE_CODE_USE_VERTEX=1) */
+  useVertex?: boolean;
+  /** Use Microsoft Azure Foundry (CLAUDE_CODE_USE_FOUNDRY=1) */
+  useFoundry?: boolean;
+  /** Shell command to dynamically retrieve API key (apiKeyHelper in settings.json) */
+  apiKeyHelper?: string;
+}
+
 export interface HarnessConfig {
-  apiKey: string;
+  auth: AuthConfig;
   model: string;
   maxQaRounds: number;
   maxBudgetUsd: number;
   outputDir: string;
   artifactsDir: string;
+  /** Load settings from filesystem (user, project, local) */
+  settingSources: Array<"user" | "project" | "local">;
+}
+
+/**
+ * Build the env record to pass to each agent's query() call.
+ * The Agent SDK spawns a Claude Code subprocess that reads these env vars.
+ */
+export function buildAgentEnv(auth: AuthConfig): Record<string, string> {
+  const env: Record<string, string> = {};
+
+  if (auth.apiKey) env.ANTHROPIC_API_KEY = auth.apiKey;
+  if (auth.authToken) env.ANTHROPIC_AUTH_TOKEN = auth.authToken;
+  if (auth.baseUrl) env.ANTHROPIC_BASE_URL = auth.baseUrl;
+  if (auth.useBedrock) env.CLAUDE_CODE_USE_BEDROCK = "1";
+  if (auth.useVertex) env.CLAUDE_CODE_USE_VERTEX = "1";
+  if (auth.useFoundry) env.CLAUDE_CODE_USE_FOUNDRY = "1";
+  if (auth.apiKeyHelper) env.CLAUDE_API_KEY_HELPER = auth.apiKeyHelper;
+
+  return env;
 }
 
 export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfig {
-  const apiKey = overrides.apiKey ?? process.env.ANTHROPIC_API_KEY;
-  if (!apiKey) {
+  const auth: AuthConfig = {
+    apiKey: (overrides.auth?.apiKey) ?? process.env.ANTHROPIC_API_KEY,
+    authToken: (overrides.auth?.authToken) ?? process.env.ANTHROPIC_AUTH_TOKEN,
+    baseUrl: (overrides.auth?.baseUrl) ?? process.env.ANTHROPIC_BASE_URL,
+    useBedrock: (overrides.auth?.useBedrock) ?? process.env.CLAUDE_CODE_USE_BEDROCK === "1",
+    useVertex: (overrides.auth?.useVertex) ?? process.env.CLAUDE_CODE_USE_VERTEX === "1",
+    useFoundry: (overrides.auth?.useFoundry) ?? process.env.CLAUDE_CODE_USE_FOUNDRY === "1",
+    apiKeyHelper: (overrides.auth?.apiKeyHelper) ?? process.env.CLAUDE_API_KEY_HELPER,
+  };
+
+  // At least one auth method must be configured
+  const hasAuth =
+    auth.apiKey || auth.authToken || auth.useBedrock || auth.useVertex || auth.useFoundry || auth.apiKeyHelper;
+  if (!hasAuth) {
     throw new Error(
-      "ANTHROPIC_API_KEY is required. Set it in .env or pass --api-key"
+      "No authentication configured. Set one of:\n" +
+      "  - ANTHROPIC_API_KEY (direct API key)\n" +
+      "  - ANTHROPIC_AUTH_TOKEN (OAuth/session token)\n" +
+      "  - CLAUDE_CODE_USE_BEDROCK=1 (with AWS credentials)\n" +
+      "  - CLAUDE_CODE_USE_VERTEX=1 (with GCP credentials)\n" +
+      "  - CLAUDE_CODE_USE_FOUNDRY=1 (with Azure credentials)\n" +
+      "  Or use --api-key / --auth-token CLI flags."
     );
   }
 
   return {
-    apiKey,
+    auth,
     model: overrides.model ?? process.env.MODEL ?? "claude-opus-4-5-20250918",
     maxQaRounds: overrides.maxQaRounds ?? parseInt(process.env.MAX_QA_ROUNDS ?? "3", 10),
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
     outputDir: overrides.outputDir ?? "./output",
     artifactsDir: overrides.artifactsDir ?? "./artifacts",
+    settingSources: overrides.settingSources ?? ["user", "project", "local"],
   };
 }

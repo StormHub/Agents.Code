@@ -3,7 +3,7 @@ import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
-import type { HarnessConfig } from "../utils/config.js";
+import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/planner.md");
@@ -37,8 +37,9 @@ Please expand this into a comprehensive product specification and write it to ${
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.05, // 5% of budget for planning
-      env: { ANTHROPIC_API_KEY: config.apiKey },
+      maxBudgetUsd: config.maxBudgetUsd * 0.05,
+      settingSources: config.settingSources,
+      env: buildAgentEnv(config.auth),
     },
   });
 

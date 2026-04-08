@@ -18,6 +18,11 @@ function printUsage() {
     --max-rounds <n>        Max QA rounds (default: 3)
     --max-budget <usd>      Max budget in USD (default: 50)
     --api-key <key>         Anthropic API key (or set ANTHROPIC_API_KEY)
+    --auth-token <token>    Anthropic auth token (or set ANTHROPIC_AUTH_TOKEN)
+    --base-url <url>        Custom API base URL (or set ANTHROPIC_BASE_URL)
+    --bedrock               Use Amazon Bedrock (or set CLAUDE_CODE_USE_BEDROCK=1)
+    --vertex                Use Google Vertex AI (or set CLAUDE_CODE_USE_VERTEX=1)
+    --foundry               Use Microsoft Azure Foundry (or set CLAUDE_CODE_USE_FOUNDRY=1)
     --help                  Show this help
 
   Examples:
@@ -35,6 +40,11 @@ function parseArgs(args: string[]): { prompt: string; overrides: Record<string, 
     if (arg === "--help" || arg === "-h") {
       printUsage();
       process.exit(0);
+    }
+    // Boolean flags (no value)
+    if (arg === "--bedrock" || arg === "--vertex" || arg === "--foundry") {
+      overrides[arg.slice(2)] = "1";
+      continue;
     }
     if (arg?.startsWith("--") && i + 1 < args.length) {
       const key = arg.slice(2);
@@ -66,7 +76,14 @@ async function main() {
       model: overrides["model"],
       maxQaRounds: overrides["max-rounds"] ? parseInt(overrides["max-rounds"], 10) : undefined,
       maxBudgetUsd: overrides["max-budget"] ? parseFloat(overrides["max-budget"]) : undefined,
-      apiKey: overrides["api-key"],
+      auth: {
+        apiKey: overrides["api-key"],
+        authToken: overrides["auth-token"],
+        baseUrl: overrides["base-url"],
+        useBedrock: overrides["bedrock"] === "1" ? true : undefined,
+        useVertex: overrides["vertex"] === "1" ? true : undefined,
+        useFoundry: overrides["foundry"] === "1" ? true : undefined,
+      },
     });
 
     await runHarness({ prompt, config });
