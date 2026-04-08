@@ -7,8 +7,8 @@ npx skills add vercel-labs/next-skills --skill next-best-practices
 
 * Playwright mcp
 ```
-  npx playwright install chromium
-  claude mcp add playwright npx @playwright/mcp@latest
+npx playwright install chromium
+claude mcp add playwright npx @playwright/mcp@latest
 ```
 
 # Backend
@@ -17,6 +17,6 @@ npx skills add vercel-labs/next-skills --skill next-best-practices
 # Claude with local 
 * [Official documentation](https://docs.ollama.com/integrations/claude-code)
 ```
-  ollama launch claude
+ollama launch claude
 ```
   
