@@ -2,6 +2,10 @@
 * React/Nextjs
 ```
 npx skills add vercel-labs/agent-skills
+```
+
+* Nextjs
+```
 npx skills add vercel-labs/next-skills --skill next-best-practices
 ```
 
