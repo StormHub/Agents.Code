@@ -30,11 +30,19 @@ export interface HarnessConfig {
 
 /**
  * Build the env record to pass to each agent's query() call.
- * The Agent SDK spawns a Claude Code subprocess that reads these env vars.
+ * Spreads process.env first so PATH and other system vars are preserved,
+ * then overlays auth-specific variables.
  */
 export function buildAgentEnv(auth: AuthConfig): Record<string, string> {
   const env: Record<string, string> = {};
 
+  // Inherit all current env vars (PATH, HOME, etc.) so the spawned
+  // Claude Code subprocess can find `node` and other system binaries.
+  for (const [key, value] of Object.entries(process.env)) {
+    if (value !== undefined) env[key] = value;
+  }
+
+  // Overlay auth-specific vars
   if (auth.apiKey) env.ANTHROPIC_API_KEY = auth.apiKey;
   if (auth.authToken) env.ANTHROPIC_AUTH_TOKEN = auth.authToken;
   if (auth.baseUrl) env.ANTHROPIC_BASE_URL = auth.baseUrl;
