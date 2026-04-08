@@ -57,7 +57,7 @@ npx tsx src/index.ts "Build a task management app with kanban boards"
 ## Target Stack
 
 - **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS
-- **Backend**: .NET 8, ASP.NET Core Web API, Entity Framework Core
+- **Backend**: .NET 10, ASP.NET Core Web API, Entity Framework Core
 - **Database**: SQLite (dev) / PostgreSQL (prod)
 
 ## Skills & Plugins
