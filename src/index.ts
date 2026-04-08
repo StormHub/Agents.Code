@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 
+import { existsSync, readFileSync } from "fs";
+import { resolve, dirname, isAbsolute } from "path";
 import { loadConfig } from "./utils/config.js";
 import { logger } from "./utils/logger.js";
 import { runHarness } from "./harness.js";
@@ -9,11 +11,18 @@ function printUsage() {
   Agents.Code — Autonomous 3-Agent Coding Harness
 
   Usage:
-    npx tsx src/index.ts <prompt> [options]
+    npx tsx src/index.ts <prompt | path/to/spec.md> [options]
+
+  Input:
+    A prompt string      Inline description of the app to build
+    A path to a .md file Reads the file contents as the prompt.
+                         When a .md file is used, output-dir and artifacts-dir
+                         default to sibling "output" and "artifacts" folders
+                         next to the file (unless explicitly overridden).
 
   Options:
-    --output-dir <path>     Output directory for the generated app (default: ./output)
-    --artifacts-dir <path>  Directory for inter-agent artifacts (default: ./artifacts)
+    --output-dir <path>     Output directory for the generated app
+    --artifacts-dir <path>  Directory for inter-agent artifacts
     --model <model>         Claude model to use (default: claude-opus-4-5-20250918)
     --max-rounds <n>        Max QA rounds (default: 3)
     --max-budget <usd>      Max budget in USD (default: 50)
@@ -27,11 +36,19 @@ function printUsage() {
 
   Examples:
     npx tsx src/index.ts "Build a task management app with kanban boards"
-    npx tsx src/index.ts "Create a real-time chat application" --max-rounds 5 --model claude-sonnet-4-20250514
+    npx tsx src/index.ts /path/to/my-app-spec.md
+    npx tsx src/index.ts ./specs/chat-app.md --model claude-sonnet-4-20250514
   `);
 }
 
-function parseArgs(args: string[]): { prompt: string; overrides: Record<string, string> } {
+interface ParsedInput {
+  prompt: string;
+  /** Directory containing the .md file (undefined when prompt is inline) */
+  sourceDir?: string;
+  overrides: Record<string, string>;
+}
+
+function parseArgs(args: string[]): ParsedInput {
   const overrides: Record<string, string> = {};
   const positional: string[] = [];
 
@@ -54,25 +71,49 @@ function parseArgs(args: string[]): { prompt: string; overrides: Record<string, 
     }
   }
 
-  const prompt = positional.join(" ");
-  if (!prompt) {
+  const raw = positional.join(" ").trim();
+  if (!raw) {
     printUsage();
-    console.error("\n  Error: A prompt is required.\n");
+    console.error("\n  Error: A prompt or .md file path is required.\n");
     process.exit(1);
   }
 
-  return { prompt, overrides };
+  // Check if the input is a path to a .md file
+  if (raw.endsWith(".md")) {
+    const filePath = isAbsolute(raw) ? raw : resolve(process.cwd(), raw);
+    if (!existsSync(filePath)) {
+      console.error(`\n  Error: File not found: ${filePath}\n`);
+      process.exit(1);
+    }
+    const prompt = readFileSync(filePath, "utf-8").trim();
+    if (!prompt) {
+      console.error(`\n  Error: File is empty: ${filePath}\n`);
+      process.exit(1);
+    }
+    return { prompt, sourceDir: dirname(filePath), overrides };
+  }
+
+  return { prompt: raw, overrides };
 }
 
 async function main() {
-  const { prompt, overrides } = parseArgs(process.argv.slice(2));
+  const { prompt, sourceDir, overrides } = parseArgs(process.argv.slice(2));
 
-  logger.info("Autonomous Coding Harness", { prompt: prompt.slice(0, 100) });
+  logger.info("Autonomous Coding Harness", {
+    prompt: prompt.slice(0, 100),
+    ...(sourceDir ? { sourceDir } : {}),
+  });
 
   try {
+    // When input is a .md file, default output/artifacts dirs to sibling folders
+    const outputDir =
+      overrides["output-dir"] ?? (sourceDir ? resolve(sourceDir, "output") : undefined);
+    const artifactsDir =
+      overrides["artifacts-dir"] ?? (sourceDir ? resolve(sourceDir, "artifacts") : undefined);
+
     const config = loadConfig({
-      outputDir: overrides["output-dir"],
-      artifactsDir: overrides["artifacts-dir"],
+      outputDir,
+      artifactsDir,
       model: overrides["model"],
       maxQaRounds: overrides["max-rounds"] ? parseInt(overrides["max-rounds"], 10) : undefined,
       maxBudgetUsd: overrides["max-budget"] ? parseFloat(overrides["max-budget"]) : undefined,
