@@ -66,7 +66,7 @@ npx tsx src/index.ts "Build a task management app with kanban boards"
 # Frontend design skill
 npx skills add vercel-labs/agent-skills
 
-# Next.js best practices
+# Nextjs best practices
 npx skills add vercel-labs/next-skills --skill next-best-practices
 
 # Playwright MCP (used by evaluator)

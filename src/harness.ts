@@ -1,6 +1,6 @@
 import { mkdirSync, existsSync } from "fs";
 import { resolve } from "path";
-import { Logger, logger } from "./utils/logger.js";
+import { logger } from "./utils/logger.js";
 import type { HarnessConfig } from "./utils/config.js";
 import { runPlanner } from "./agents/planner.js";
 import { runGenerator } from "./agents/generator.js";
