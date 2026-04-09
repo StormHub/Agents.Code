@@ -1,10 +1,11 @@
-import { mkdirSync, existsSync } from "fs";
+import { mkdirSync, existsSync, readFileSync } from "fs";
 import { resolve } from "path";
 import { logger } from "./utils/logger.js";
 import type { HarnessConfig } from "./utils/config.js";
 import { runPlanner } from "./agents/planner.js";
 import { runGenerator } from "./agents/generator.js";
 import { runEvaluator } from "./agents/evaluator.js";
+import { loadSkills, detectSkills, formatSkillsAppendix, type Skill } from "./skills/loader.js";
 
 export interface HarnessOptions {
   prompt: string;
@@ -21,17 +22,25 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
   mkdirSync(artifactsDir, { recursive: true });
   mkdirSync(outputDir, { recursive: true });
 
+  // ── Skill Detection ────────────────────────────────────────────────
+  const allSkills = loadSkills();
+  log.info(`Loaded ${allSkills.length} skill(s): ${allSkills.map((s) => s.name).join(", ") || "none"}`);
+
+  const matchedSkills = detectSkills(prompt, allSkills, log);
+  const skillAppendix = formatSkillsAppendix(matchedSkills);
+
   log.info("Starting autonomous harness", {
     model: config.model,
     maxQaRounds: config.maxQaRounds,
     maxBudgetUsd: config.maxBudgetUsd,
+    skills: matchedSkills.map((s) => s.name),
     outputDir,
   });
 
   // ── Phase 1: Planning ──────────────────────────────────────────────
   log.info("═══ Phase 1: Planning ═══");
   const planStart = Date.now();
-  await runPlanner(prompt, config, log.child("planner"));
+  await runPlanner(prompt, config, log.child("planner"), skillAppendix);
   const planDuration = ((Date.now() - planStart) / 1000 / 60).toFixed(1);
   log.info(`Planning completed in ${planDuration} min`);
 
@@ -41,6 +50,17 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
     throw new Error(`Planner failed to write spec to ${specPath}`);
   }
 
+  // Re-detect skills from the generated spec (planner may have added detail)
+  const specContent = readFileSync(specPath, "utf-8");
+  const specSkills = detectSkills(specContent, allSkills, log);
+  const combinedSkills = dedupeSkills([...matchedSkills, ...specSkills]);
+  const finalAppendix = formatSkillsAppendix(combinedSkills);
+
+  if (combinedSkills.length > matchedSkills.length) {
+    const newSkills = combinedSkills.filter((s) => !matchedSkills.some((m) => m.name === s.name));
+    log.info(`Additional skill(s) detected from spec: ${newSkills.map((s) => s.name).join(", ")}`);
+  }
+
   // ── Phase 2+3: Build → QA Loop ────────────────────────────────────
   let passed = false;
 
@@ -48,14 +68,14 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
     // Build
     log.info(`═══ Phase 2: Build (Round ${round}/${config.maxQaRounds}) ═══`);
     const buildStart = Date.now();
-    await runGenerator(config, round, log.child("generator"));
+    await runGenerator(config, round, log.child("generator"), finalAppendix);
     const buildDuration = ((Date.now() - buildStart) / 1000 / 60).toFixed(1);
     log.info(`Build round ${round} completed in ${buildDuration} min`);
 
     // QA
     log.info(`═══ Phase 3: QA (Round ${round}/${config.maxQaRounds}) ═══`);
     const qaStart = Date.now();
-    passed = await runEvaluator(config, round, log.child("evaluator"));
+    passed = await runEvaluator(config, round, log.child("evaluator"), finalAppendix);
     const qaDuration = ((Date.now() - qaStart) / 1000 / 60).toFixed(1);
     log.info(`QA round ${round} completed in ${qaDuration} min`, { passed });
 
@@ -80,4 +100,13 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
     log.warn(`   Application (with issues) is in: ${outputDir}`);
     log.warn(`   Review QA feedback at: ${resolve(artifactsDir, "qa-feedback.md")}`);
   }
+}
+
+function dedupeSkills(skills: Skill[]): Skill[] {
+  const seen = new Set<string>();
+  return skills.filter((s) => {
+    if (seen.has(s.name)) return false;
+    seen.add(s.name);
+    return true;
+  });
 }

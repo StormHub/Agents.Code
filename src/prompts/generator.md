@@ -102,7 +102,7 @@ Before handing off to QA, write a `build-status.md` to the artifacts directory:
 
 ### AI Features
 When the spec calls for AI-powered features:
-- Build a proper agent with Claude API integration
+- Follow the framework-specific patterns provided in any attached skill references
 - Use tool-calling patterns where appropriate
 - Implement streaming responses for better UX
 - Handle errors and rate limits gracefully

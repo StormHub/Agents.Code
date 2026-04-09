@@ -12,9 +12,11 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/generator.md");
 export async function runGenerator(
   config: HarnessConfig,
   round: number,
-  log: Logger
+  log: Logger,
+  skillAppendix: string = ""
 ): Promise<void> {
-  const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
+  const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
+  const systemPrompt = basePrompt + skillAppendix;
   const artifactsDir = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 

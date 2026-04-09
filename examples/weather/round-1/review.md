@@ -11,3 +11,11 @@ Things that AI code fails to follow
 ## Frontend /weather-chat 
 - Ignored AI SDK, used plain fetch
 - Ignored json-render completely
+
+# Reasons
+- No knowledge of 'Microsoft Agent Framework' and how to use it
+- No knowledge of how to connect to backend by AGUI protocol via vercel AI SDK in nextjs
+- No knowledge of how to use vercel json render with backend api
+
+# Actions
+- Create skills for the above.
