@@ -68,8 +68,33 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
 
   // ── Phase 2+3: Build → QA Loop ────────────────────────────────────
   let passed = false;
+  let startRound = 1;
 
-  for (let round = 1; round <= config.maxQaRounds; round++) {
+  // Resume: if build-status.md exists, the previous build completed — skip to QA first
+  const buildStatusPath = resolve(artifactsDir, "build-status.md");
+  const feedbackPath = resolve(artifactsDir, "qa-feedback.md");
+
+  if (existsSync(buildStatusPath)) {
+    log.info("═══ Resuming — existing build detected ═══");
+    log.info(`Found build status: ${buildStatusPath}`);
+
+    // Run QA against the existing build
+    log.info(`═══ Phase 3: QA (resume evaluation) ═══`);
+    const qaStart = Date.now();
+    passed = await runEvaluator(config, 1, log.child("evaluator"), finalAppendix);
+    const qaDuration = ((Date.now() - qaStart) / 1000 / 60).toFixed(1);
+    log.info(`QA (resume) completed in ${qaDuration} min`, { passed });
+
+    if (passed) {
+      log.info(`✅ QA passed on existing build!`);
+      startRound = config.maxQaRounds + 1; // skip the loop
+    } else {
+      log.warn(`QA failed on existing build. Starting fix rounds...`);
+      startRound = 2; // go straight to fix rounds
+    }
+  }
+
+  for (let round = startRound; round <= config.maxQaRounds; round++) {
     // Build
     log.info(`═══ Phase 2: Build (Round ${round}/${config.maxQaRounds}) ═══`);
     const buildStart = Date.now();
