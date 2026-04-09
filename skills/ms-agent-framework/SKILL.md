@@ -6,67 +6,284 @@ description: Microsoft Agent Framework (.NET) patterns for building AI agents wi
 # Microsoft Agent Framework (.NET)
 
 Documentation: https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-csharp
+Source: https://github.com/microsoft/agent-framework/tree/main/dotnet/samples/02-agents/AGUI
 
 ## NuGet Packages
 
 | Package | Purpose |
 |---------|---------|
-| `Microsoft.Agents.AI` | Core agent framework (AIAgent, AIAgentBuilder) |
-| `Microsoft.Agents.AI.Hosting.AspNetCore` | AG-UI protocol hosting via ASP.NET Core |
-| `Microsoft.Extensions.AI` | IChatClient abstraction layer |
-| `OllamaSharp` | Connect to local Ollama models |
-| `Azure.AI.OpenAI` | Azure OpenAI provider |
+| `Microsoft.Agents.AI` | Core framework: `AIAgent`, `ChatClientAgent`, `DelegatingAIAgent`, `AsAIAgent()` extension |
+| `Microsoft.Agents.AI.AGUI` | AG-UI client: `AGUIChatClient` for connecting to AG-UI servers |
+| `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore` | AG-UI server hosting: `AddAGUI()`, `MapAGUI()` for ASP.NET Core |
+| `Microsoft.Agents.AI.OpenAI` | OpenAI/Azure OpenAI integration via `IChatClient` |
+| `Microsoft.Extensions.AI` | `IChatClient` abstraction, `AIFunctionFactory`, `AITool` |
+| `Azure.AI.OpenAI` | Azure OpenAI client (`AzureOpenAIClient`) |
+| `Azure.Identity` | Azure credential management (`DefaultAzureCredential`) |
+| `OllamaSharp` | Local Ollama model integration |
 
-## Creating an Agent with Tools
+## Basic AG-UI Server (Getting Started)
+
+From Step01_GettingStarted — the minimal AG-UI server:
 
 ```csharp
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
+using OpenAI.Chat;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpClient().AddLogging();
+builder.Services.AddAGUI();
+
+WebApplication app = builder.Build();
+
+string endpoint = builder.Configuration["AZURE_OPENAI_ENDPOINT"]
+    ?? throw new InvalidOperationException("AZURE_OPENAI_ENDPOINT is not set.");
+string deploymentName = builder.Configuration["AZURE_OPENAI_DEPLOYMENT_NAME"]
+    ?? throw new InvalidOperationException("AZURE_OPENAI_DEPLOYMENT_NAME is not set.");
+
+ChatClient chatClient = new AzureOpenAIClient(
+        new Uri(endpoint),
+        new DefaultAzureCredential())
+    .GetChatClient(deploymentName);
+
+AIAgent agent = chatClient.AsAIAgent(
+    name: "AGUIAssistant",
+    instructions: "You are a helpful assistant.");
+
+// Map the AG-UI endpoint — uses SSE streaming over HTTP POST
+app.MapAGUI("/", agent);
+
+await app.RunAsync();
+```
+
+Key setup pattern:
+1. `builder.Services.AddAGUI()` — registers AG-UI services
+2. `chatClient.AsAIAgent(name, instructions)` — creates an `AIAgent` from any `ChatClient`
+3. `app.MapAGUI("/", agent)` — exposes the agent as an AG-UI HTTP endpoint (NOT `MapAgent`)
+
+## AG-UI Server with Backend Tools
+
+From Step02_BackendTools — tools that execute on the server:
+
+```csharp
+using System.ComponentModel;
+using System.Text.Json.Serialization;
+using Azure.AI.OpenAI;
+using Azure.Identity;
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Hosting.AGUI.AspNetCore;
+using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Options;
+using OpenAI.Chat;
+
+WebApplicationBuilder builder = WebApplication.CreateBuilder(args);
+builder.Services.AddHttpClient().AddLogging();
+builder.Services.ConfigureHttpJsonOptions(options =>
+    options.SerializerOptions.TypeInfoResolverChain.Add(SampleJsonSerializerContext.Default));
+builder.Services.AddAGUI();
+
+WebApplication app = builder.Build();
+
+// Define function tools using [Description] and typed parameters
+[Description("Search for restaurants in a location.")]
+static RestaurantSearchResponse SearchRestaurants(
+    [Description("The restaurant search request")] RestaurantSearchRequest request)
+{
+    return new RestaurantSearchResponse
+    {
+        Location = request.Location,
+        Results = [
+            new RestaurantInfo { Name = "The Golden Fork", Rating = 4.5, Address = $"123 Main St, {request.Location}" }
+        ]
+    };
+}
+
+// Get JsonSerializerOptions from configured HTTP JSON options
+var jsonOptions = app.Services.GetRequiredService<IOptions<Microsoft.AspNetCore.Http.Json.JsonOptions>>().Value;
+
+// Create tools with serializer options for source generation
+AITool[] tools = [
+    AIFunctionFactory.Create(SearchRestaurants, serializerOptions: jsonOptions.SerializerOptions)
+];
+
+ChatClient chatClient = new AzureOpenAIClient(
+        new Uri(endpoint), new DefaultAzureCredential())
+    .GetChatClient(deploymentName);
+
+// AsAIAgent returns ChatClientAgent when tools are provided
+ChatClientAgent agent = chatClient.AsAIAgent(
+    name: "AGUIAssistant",
+    instructions: "You are a helpful assistant with access to restaurant information.",
+    tools: tools);
+
+app.MapAGUI("/", agent);
+await app.RunAsync();
+
+// Define request/response types
+internal sealed class RestaurantSearchRequest
+{
+    public string Location { get; set; } = string.Empty;
+    public string Cuisine { get; set; } = "any";
+}
+
+internal sealed class RestaurantSearchResponse
+{
+    public string Location { get; set; } = string.Empty;
+    public RestaurantInfo[] Results { get; set; } = [];
+}
+
+internal sealed class RestaurantInfo
+{
+    public string Name { get; set; } = string.Empty;
+    public double Rating { get; set; }
+    public string Address { get; set; } = string.Empty;
+}
+
+// JSON serialization context for AOT/source generation
+[JsonSerializable(typeof(RestaurantSearchRequest))]
+[JsonSerializable(typeof(RestaurantSearchResponse))]
+internal sealed partial class SampleJsonSerializerContext : JsonSerializerContext;
+```
+
+## AG-UI Client (Connecting to an AG-UI Server)
+
+From Step01_GettingStarted/Client — .NET console client using `AGUIChatClient`:
+
+```csharp
+using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.AGUI;
 using Microsoft.Extensions.AI;
 
-// Create agent from any IChatClient (Azure OpenAI, Ollama, etc.)
+string serverUrl = Environment.GetEnvironmentVariable("AGUI_SERVER_URL") ?? "http://localhost:8888";
+
+using HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(60) };
+
+// AGUIChatClient wraps an AG-UI server endpoint as an IChatClient
+AGUIChatClient chatClient = new(httpClient, serverUrl);
+
 AIAgent agent = chatClient.AsAIAgent(
-    name: "MyAgent",
-    instructions: "You are a helpful assistant",
-    tools: [AIFunctionFactory.Create(MyToolMethod)]
-);
+    name: "agui-client",
+    description: "AG-UI Client Agent");
 
-// Run the agent
-string response = await agent.RunAsync("Hello!");
+AgentSession session = await agent.CreateSessionAsync();
+List<ChatMessage> messages = [new(ChatRole.System, "You are a helpful assistant.")];
+
+messages.Add(new ChatMessage(ChatRole.User, "Hello!"));
+
+// Stream the response
+await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(messages, session))
+{
+    foreach (AIContent content in update.Contents)
+    {
+        if (content is TextContent textContent)
+            Console.Write(textContent.Text);
+        else if (content is ErrorContent errorContent)
+            Console.WriteLine($"[Error: {errorContent.Message}]");
+    }
+}
 ```
 
-## Defining Tools
+## DelegatingAIAgent Middleware Pattern
 
-Use `[Description]` attributes and `AIFunctionFactory.Create()`:
+From Step04_HumanInLoop and Step05_StateManagement — extend agents with middleware:
 
 ```csharp
-[Description("Get weather for a location")]
-static string GetWeather([Description("City name")] string location)
-    => JsonSerializer.Serialize(new WeatherResult {
-        Location = location,
-        TemperatureC = 22,
-        Condition = "sunny"
-    });
+using System.Runtime.CompilerServices;
+using Microsoft.Agents.AI;
+using Microsoft.Extensions.AI;
 
-// Register in agent
-var agent = chatClient.AsAIAgent(
-    tools: [AIFunctionFactory.Create(GetWeather)]
-);
+// Extend DelegatingAIAgent to wrap an inner agent with custom behavior
+internal sealed class MyMiddlewareAgent : DelegatingAIAgent
+{
+    public MyMiddlewareAgent(AIAgent innerAgent) : base(innerAgent) { }
+
+    protected override Task<AgentResponse> RunCoreAsync(
+        IEnumerable<ChatMessage> messages,
+        AgentSession? session = null,
+        AgentRunOptions? options = null,
+        CancellationToken cancellationToken = default)
+    {
+        return RunCoreStreamingAsync(messages, session, options, cancellationToken)
+            .ToAgentResponseAsync(cancellationToken);
+    }
+
+    protected override async IAsyncEnumerable<AgentResponseUpdate> RunCoreStreamingAsync(
+        IEnumerable<ChatMessage> messages,
+        AgentSession? session = null,
+        AgentRunOptions? options = null,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        // Pre-processing: modify messages, add system prompts, etc.
+
+        // Delegate to inner agent
+        await foreach (var update in InnerAgent.RunStreamingAsync(
+            messages, session, options, cancellationToken).ConfigureAwait(false))
+        {
+            // Post-processing: transform updates, emit state, etc.
+            yield return update;
+        }
+    }
+}
+
+// Usage: wrap the base agent
+AIAgent baseAgent = chatClient.AsAIAgent(name: "MyAgent", instructions: "...");
+AIAgent agent = new MyMiddlewareAgent(baseAgent);
+app.MapAGUI("/", agent);
 ```
 
-## Hosting with ASP.NET Core (AG-UI Protocol)
+## State Management with AG-UI
 
-AG-UI (Agent User Interaction Protocol) streams agent events over HTTP:
+From Step05_StateManagement — emit structured state updates as `DataContent`:
 
 ```csharp
-var builder = WebApplication.CreateBuilder(args);
-builder.Services.AddCors();
+// Define state models with JSON serialization
+internal sealed class AgentState
+{
+    [JsonPropertyName("recipe")]
+    public RecipeState Recipe { get; set; } = new();
+}
 
-var app = builder.Build();
-app.UseCors(p => p.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+internal sealed class RecipeState
+{
+    [JsonPropertyName("title")]
+    public string Title { get; set; } = string.Empty;
+    [JsonPropertyName("ingredients")]
+    public List<string> Ingredients { get; set; } = [];
+    [JsonPropertyName("steps")]
+    public List<string> Steps { get; set; } = [];
+}
 
-// Map agent as an AG-UI HTTP endpoint
-app.MapAgent(agent);
+[JsonSerializable(typeof(AgentState))]
+[JsonSerializable(typeof(JsonElement))]
+internal sealed partial class RecipeSerializerContext : JsonSerializerContext;
 
-app.Run();
+// In DelegatingAIAgent, emit state as DataContent:
+byte[] stateBytes = JsonSerializer.SerializeToUtf8Bytes(stateSnapshot, jsonOptions.GetTypeInfo(typeof(JsonElement)));
+yield return new AgentResponseUpdate
+{
+    Contents = [new DataContent(stateBytes, "application/json")]
+};
+```
+
+## Human-in-the-Loop Approval
+
+From Step04_HumanInLoop — wrap tools with approval requirements:
+
+```csharp
+#pragma warning disable MEAI001
+AITool[] tools = [new ApprovalRequiredAIFunction(AIFunctionFactory.Create(ApproveExpenseReport))];
+#pragma warning restore MEAI001
+
+ChatClientAgent baseAgent = chatClient.AsAIAgent(
+    name: "AGUIAssistant",
+    instructions: "You are a helpful assistant in charge of approving expenses",
+    tools: tools);
+
+// Wrap with approval middleware (transforms ToolApprovalRequestContent ↔ request_approval tool calls)
+var agent = new ServerFunctionApprovalAgent(baseAgent, jsonOptions.SerializerOptions);
+app.MapAGUI("/", agent);
 ```
 
 ## Connecting to Ollama (Local LLM)
@@ -78,62 +295,64 @@ var ollama = new OllamaApiClient("http://localhost:11434");
 ollama.SelectedModel = "qwen2.5:latest";
 IChatClient chatClient = ollama.AsChatClient();
 
-// Then create agent from this client
-var agent = chatClient.AsAIAgent(
+AIAgent agent = chatClient.AsAIAgent(
     name: "LocalAgent",
     instructions: "You are helpful",
-    tools: [AIFunctionFactory.Create(MyTool)]
-);
+    tools: [AIFunctionFactory.Create(MyTool)]);
 ```
 
-## Middleware Pipeline
+## csproj Setup
 
-```csharp
-AIAgent agent = new AIAgentBuilder(innerAgent)
-    .Use(async (messages, session, options, next, ct) => {
-        // Pre-processing
-        Console.WriteLine($"Processing {messages.Count()} messages");
-        var result = await next(messages, session, options, ct);
-        // Post-processing
-        return result;
-    })
-    .WithLogging()
-    .WithOpenTelemetry()
-    .Build(services);
+Server (AG-UI hosting):
+```xml
+<Project Sdk="Microsoft.NET.Sdk.Web">
+  <PropertyGroup>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI.Hosting.AGUI.AspNetCore" />
+    <PackageReference Include="Microsoft.Agents.AI.OpenAI" />
+    <PackageReference Include="Azure.AI.OpenAI" />
+    <PackageReference Include="Azure.Identity" />
+  </ItemGroup>
+</Project>
 ```
 
-## Agent-as-Tool Composition
-
-Wrap an agent as a tool for another agent:
-
-```csharp
-AIFunction agentAsFunction = childAgent.AsAIFunction(
-    options: new AIFunctionFactoryOptions { Name = "specialist_agent" },
-    session: sessionInstance
-);
-
-var orchestrator = chatClient.AsAIAgent(
-    tools: [agentAsFunction, AIFunctionFactory.Create(OtherTool)]
-);
+Client (AG-UI consumer):
+```xml
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFrameworks>net10.0</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Agents.AI" />
+    <PackageReference Include="Microsoft.Agents.AI.AGUI" />
+  </ItemGroup>
+</Project>
 ```
 
-## Frontend Integration (AG-UI with Vercel AI SDK)
+## AG-UI Protocol (How It Works)
 
-The AG-UI endpoint is consumed by the Vercel AI SDK on the frontend:
-
-```typescript
-import { useAgui } from "@anthropic-ai/agent-ui";
-
-// Connect to the AG-UI backend endpoint
-const { messages, input, handleSubmit } = useAgui({
-  url: "http://localhost:5000/api/agent",
-});
-```
+1. Client sends HTTP POST with messages to the server
+2. `MapAGUI` receives the request and invokes the agent
+3. Agent processes messages via the Agent Framework
+4. Responses stream back as **Server-Sent Events (SSE)**
+5. `ConversationId` maintains conversation context across requests
+6. `ResponseId` tracks individual execution runs
 
 ## Key Patterns Summary
 
-- Use `chatClient.AsAIAgent()` to create agents — NOT manual HTTP/REST calls to LLM APIs
-- Use `AIFunctionFactory.Create()` for tools — NOT manual function schemas
-- Use `app.MapAgent()` for hosting — NOT custom controller endpoints
-- Use `IChatClient` abstraction — swap providers without code changes
-- Use `AIAgentBuilder` for middleware — NOT manual decorator patterns
+- Use `builder.Services.AddAGUI()` + `app.MapAGUI("/", agent)` for hosting — NOT `MapAgent` or custom controllers
+- Use `chatClient.AsAIAgent(name, instructions, tools)` to create agents from any `ChatClient`
+- Use `AIFunctionFactory.Create()` with `[Description]` for tools — NOT manual function schemas
+- Use `AGUIChatClient` to consume AG-UI servers from .NET — NOT manual HTTP/SSE parsing
+- Use `DelegatingAIAgent` for middleware — override `RunCoreStreamingAsync` to intercept/transform
+- Use `ConfigureHttpJsonOptions` + `JsonSerializerContext` for JSON source generation
+- Use `DataContent` with `"application/json"` to emit structured state updates
+- Use `AgentSession` + `CreateSessionAsync()` for conversation session management
+- Target `net10.0` in csproj — NOT net6/7/8/9

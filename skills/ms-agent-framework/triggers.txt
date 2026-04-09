@@ -6,4 +6,11 @@ agui
 agent-framework
 AIAgent
 AsAIAgent
-MapAgent
+MapAGUI
+AddAGUI
+AGUIChatClient
+DelegatingAIAgent
+ChatClientAgent
+Microsoft.Agents.AI
+Microsoft.Agents.AI.AGUI
+Microsoft.Agents.AI.Hosting.AGUI

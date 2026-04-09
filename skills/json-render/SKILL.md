@@ -1,11 +1,6 @@
-name
-
-json-render
-
-description
-
-json-render patterns for AI-generated UIs with guardrailed component catalogs. Covers defineCatalog, defineRegistry, Renderer, SpecStream streaming, and shadcn/ui integration. Use when the spec references json-render or AI-driven visual rendering of structured JSON.
-
+---
+name: json-render
+description: json-render patterns for AI-generated UIs with guardrailed component catalogs. Covers defineCatalog, defineRegistry, Renderer, SpecStream streaming, and shadcn/ui integration. Use when the spec references json-render or AI-driven visual rendering of structured JSON.
 ---
 
 # json-render — Generative UI Framework

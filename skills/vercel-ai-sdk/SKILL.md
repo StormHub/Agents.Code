@@ -1,11 +1,6 @@
-name
-
-vercel-ai-sdk
-
-description
-
-Vercel AI SDK patterns for building AI-powered Next.js applications. Covers useChat, streamText, generateText, structured output, tool calling, and streaming UI patterns. Use when the spec references Vercel AI SDK or @ai-sdk packages.
-
+---
+name: vercel-ai-sdk
+description: Vercel AI SDK patterns for building AI-powered Next.js applications. Covers useChat, streamText, generateText, structured output, tool calling, and streaming UI patterns. Use when the spec references Vercel AI SDK or @ai-sdk packages.
 ---
 
 # Vercel AI SDK
