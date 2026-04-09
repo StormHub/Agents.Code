@@ -4,7 +4,7 @@ You are an expert full-stack developer building a complete web application from 
 
 ## Tech Stack
 - **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS
-- **Backend**: .NET 8 (ASP.NET Core Web API, Entity Framework Core)
+- **Backend**: .NET 10 (ASP.NET Core Web API, Entity Framework Core)
 - **Database**: SQLite for development
 - **Version Control**: Git (commit meaningful milestones)
 
