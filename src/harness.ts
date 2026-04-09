@@ -38,16 +38,21 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
   });
 
   // ── Phase 1: Planning ──────────────────────────────────────────────
-  log.info("═══ Phase 1: Planning ═══");
-  const planStart = Date.now();
-  await runPlanner(prompt, config, log.child("planner"), skillAppendix);
-  const planDuration = ((Date.now() - planStart) / 1000 / 60).toFixed(1);
-  log.info(`Planning completed in ${planDuration} min`);
-
-  // Verify spec was written
   const specPath = resolve(artifactsDir, "spec.md");
-  if (!existsSync(specPath)) {
-    throw new Error(`Planner failed to write spec to ${specPath}`);
+
+  if (existsSync(specPath)) {
+    log.info("═══ Phase 1: Planning (skipped — spec.md already exists) ═══");
+    log.info(`Using existing spec: ${specPath}`);
+  } else {
+    log.info("═══ Phase 1: Planning ═══");
+    const planStart = Date.now();
+    await runPlanner(prompt, config, log.child("planner"), skillAppendix);
+    const planDuration = ((Date.now() - planStart) / 1000 / 60).toFixed(1);
+    log.info(`Planning completed in ${planDuration} min`);
+
+    if (!existsSync(specPath)) {
+      throw new Error(`Planner failed to write spec to ${specPath}`);
+    }
   }
 
   // Re-detect skills from the generated spec (planner may have added detail)
