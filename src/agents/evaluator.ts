@@ -59,6 +59,7 @@ or
         },
       },
       env: buildAgentEnv(config.auth),
+      stderr: (data: string) => log.stderr(data),
     },
   });
 
@@ -69,6 +70,10 @@ or
           log.agent(block.text.slice(0, 200));
         }
       }
+    } else if (message.type === "result") {
+      log.info(`Evaluator result (round ${round})`, {
+        subtype: (message as Record<string, unknown>).subtype as string | undefined,
+      });
     }
   }
 

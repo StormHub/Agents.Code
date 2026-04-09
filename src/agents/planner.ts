@@ -40,6 +40,7 @@ Please expand this into a comprehensive product specification and write it to ${
       maxBudgetUsd: config.maxBudgetUsd * 0.05,
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
+      stderr: (data: string) => log.stderr(data),
     },
   });
 
@@ -50,6 +51,10 @@ Please expand this into a comprehensive product specification and write it to ${
           log.agent(block.text.slice(0, 200));
         }
       }
+    } else if (message.type === "result") {
+      log.info("Planner result", {
+        subtype: (message as Record<string, unknown>).subtype as string | undefined,
+      });
     }
   }
 

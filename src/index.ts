@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, mkdirSync } from "fs";
 import { resolve, dirname, isAbsolute } from "path";
 import { loadConfig } from "./utils/config.js";
-import { logger } from "./utils/logger.js";
+import { Logger, logger } from "./utils/logger.js";
 import { runHarness } from "./harness.js";
 
 function printUsage() {
@@ -127,9 +127,19 @@ async function main() {
       },
     });
 
+    // Initialize log file in the artifacts directory
+    const logDir = resolve(config.artifactsDir);
+    mkdirSync(logDir, { recursive: true });
+    const logFile = resolve(logDir, "run.log.txt");
+    Logger.setLogFile(logFile);
+    logger.info(`Logging to ${logFile}`);
+
     await runHarness({ prompt, config });
   } catch (error) {
     logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
+    if (error instanceof Error && error.stack) {
+      logger.debug(error.stack);
+    }
     process.exit(1);
   }
 }

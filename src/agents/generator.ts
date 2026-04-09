@@ -68,6 +68,7 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
       maxBudgetUsd: config.maxBudgetUsd * 0.35,
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
+      stderr: (data: string) => log.stderr(data),
     },
   });
 
@@ -78,6 +79,10 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
           log.agent(block.text.slice(0, 200));
         }
       }
+    } else if (message.type === "result") {
+      log.info(`Generator result (round ${round})`, {
+        subtype: (message as Record<string, unknown>).subtype as string | undefined,
+      });
     }
   }
 
