@@ -50,7 +50,7 @@ Please expand this into a comprehensive product specification and write it to ${
     if (message.type === "assistant" && message.message?.content) {
       for (const block of message.message.content) {
         if (block.type === "text" && block.text.trim()) {
-          log.agent(block.text.slice(0, 200));
+          log.agent(block.text); // trim text to 200?
         }
       }
     } else if (message.type === "result") {

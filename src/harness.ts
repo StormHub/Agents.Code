@@ -72,7 +72,6 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
 
   // Resume: if build-status.md exists, the previous build completed — skip to QA first
   const buildStatusPath = resolve(artifactsDir, "build-status.md");
-  const feedbackPath = resolve(artifactsDir, "qa-feedback.md");
 
   if (existsSync(buildStatusPath)) {
     log.info("═══ Resuming — existing build detected ═══");
