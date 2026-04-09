@@ -1,6 +1,6 @@
 ## Project
 
-A learning project: a weather chat application where users ask about weather for any location. Responses are rendered as visual UI components, not plain text.
+A weather chat application where users ask about weather for any location. Responses are rendered as visual UI components, not plain text.
 
 ## Architecture
 
@@ -15,10 +15,10 @@ User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
 ```
 
 ## Backend
-
-- **Runtime**: .NET 10
-- **Protocol**: AG-UI (Agent User Interaction Protocol) — streams agent events over HTTP
-- **LLM**: Ollama with `qwen2.5:latest` (must support tool calling)
+- **Runtime**: .NET 10 latest
+- **(Microsoft Agent Framework)[https://github.com/microsoft/agent-framework]** to build weather agent with get_weather too call
+- **LLM**: Connect agent with local Ollama model of `qwen2.5` (must support tool calling)
+- **Expose Agent by AG-UI (Agent User Interaction Protocol) and streams agent events over HTTP
 - **Weather data**: Local simulation — no external API, returns randomized plausible data
 
 ### Simulated Weather Tool
@@ -50,8 +50,8 @@ The tool generates plausible simulated data for any location string. `WeatherRes
 ```
 
 ## Frontend
-
-- **Framework**: Next.js
+- **Framework**: Nextjs
+- **Chat based input and output interface**
 - **AI integration**: [Vercel AI SDK](https://github.com/vercel/ai) — connects to the AG-UI backend and handles streaming
 - **Weather rendering**: [json-render](https://github.com/vercel-labs/json-render) — maps `WeatherResult` JSON fields to visual weather components (temperature display, condition icon, forecast row, etc.)
 
