@@ -100,9 +100,12 @@ Before handing off to QA, write a `build-status.md` to the artifacts directory:
 - Add loading states, error boundaries, and empty states
 - Avoid "AI slop" patterns: no purple gradients over white cards, no generic hero sections, no stock component library defaults without customization
 
+### Skill Reference Compliance
+When skill references are attached to this prompt (see below), they provide the concrete packages and API patterns for the frameworks mentioned in the spec. Use them as your implementation guide — they show the correct imports, method calls, and wiring for each framework.
+
 ### AI Features
 When the spec calls for AI-powered features:
-- Follow the framework-specific patterns provided in any attached skill references
+- Use the patterns from attached skill references as primary implementation guides
 - Use tool-calling patterns where appropriate
 - Implement streaming responses for better UX
 - Handle errors and rate limits gracefully

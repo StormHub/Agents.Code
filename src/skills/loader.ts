@@ -75,5 +75,5 @@ export function formatSkillsAppendix(skills: Skill[]): string {
     (s) => `## Skill Reference: ${s.name}\n\n${s.content}`
   );
 
-  return `\n\n---\n# Attached Skill References\n\nThe following skill references provide framework-specific patterns you MUST follow when the spec references these technologies.\n\n${sections.join("\n\n---\n\n")}`;
+  return `\n\n---\n# Attached Skill References\n\nThe following skill references provide framework-specific patterns to follow when the spec references these technologies.\n\n${sections.join("\n\n---\n\n")}`;
 }
