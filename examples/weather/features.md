@@ -13,6 +13,10 @@ User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
                                                       ↓ WeatherResult JSON
                          json-render ← Next.js ←────────────────────
 ```
+## Directory Structure
+- api folder for backend, create a single Dockerfile to run the the api
+- app folder for frontend, create a single Dockerfile to run the the app
+- docker-compose.yaml file to run both backend and frontend, this MUST be used as single point of entry to run the entire application
 
 ## Backend
 - **Runtime**: .NET 10 latest
