@@ -1,0 +1,33 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e6]:
+    - generic [ref=e7]:
+      - banner [ref=e8]:
+        - generic [ref=e9]:
+          - heading "Weather Chat" [level=1] [ref=e10]
+          - paragraph [ref=e11]: Ask about weather naturally, anywhere
+      - generic [ref=e15]:
+        - generic [ref=e16]: 🌤️
+        - heading "Welcome to Weather Chat" [level=2] [ref=e17]
+        - paragraph [ref=e18]: Ask me about the weather in any location. Try "What's the weather in Tokyo?" or "Show me the forecast for London"
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - heading "Weather Chat" [level=2] [ref=e24]
+        - paragraph [ref=e25]: Ask naturally, get instant insights
+      - generic [ref=e27]:
+        - generic [ref=e28]: 💬
+        - paragraph [ref=e29]: Start a conversation
+        - paragraph [ref=e30]: Ask about weather in any location or compare cities
+        - generic [ref=e31]:
+          - button "→What's the weather in Tokyo?" [ref=e32]
+          - button "→Is it raining in London?" [ref=e33]
+          - button "→Show me the forecast for New York" [ref=e34]
+          - button "→Compare New York and Los Angeles" [ref=e35]
+          - button "→What's the weather tomorrow?" [ref=e36]
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - textbox "Ask about weather..." [ref=e40]
+          - button "Send" [disabled] [ref=e41]
+        - paragraph [ref=e42]: Backend should be running on localhost:5150
+  - button "Open Next.js Dev Tools" [ref=e49] [cursor=pointer]:
+    - img [ref=e50]
+  - alert [ref=e43]
