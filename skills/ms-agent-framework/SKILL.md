@@ -63,6 +63,8 @@ Key setup pattern:
 2. `chatClient.AsAIAgent(name, instructions)` — creates an `AIAgent` from any `ChatClient`
 3. `app.MapAGUI("/", agent)` — exposes the agent as an AG-UI HTTP endpoint (NOT `MapAgent`)
 
+`MapAGUI` maps the agent directly as an HTTP API endpoint (SSE over POST). The agent itself handles all chat interactions, tool calls, and streaming — there is no need to create separate API controllers or service classes for functionality the agent already provides.
+
 ## AG-UI Server with Backend Tools
 
 From Step02_BackendTools — tools that execute on the server:
