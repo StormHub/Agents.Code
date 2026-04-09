@@ -21,6 +21,10 @@ Source: https://github.com/microsoft/agent-framework/tree/main/dotnet/samples/02
 | `Azure.Identity` | Azure credential management (`DefaultAzureCredential`) |
 | `OllamaSharp` | Local Ollama model integration |
 
+## Project Setup
+
+When using Agent Framework with AG-UI, do NOT scaffold with `dotnet new webapi` — it generates a REST template (`MapGet("/weatherforecast")`) that conflicts with the agent pattern. Instead, use `dotnet new web` (empty ASP.NET Core app) and write `Program.cs` from scratch following the patterns below.
+
 ## Basic AG-UI Server (Getting Started)
 
 From Step01_GettingStarted — the minimal AG-UI server:
