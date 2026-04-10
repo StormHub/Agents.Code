@@ -29,11 +29,12 @@ export class Logger {
     const color = COLORS[level];
     const suffix = data ? ` ${JSON.stringify(data)}` : "";
 
-    // Console output (with color)
+    // Console output (with color, truncated)
+    const displayMsg = message.length > 200 ? message.slice(0, 200) + "..." : message;
     const prefix = `${color}[${timestamp}]${RESET} ${BOLD}[${this.context}]${RESET}`;
-    console.log(`${prefix} ${message}${suffix}`);
+    console.log(`${prefix} ${displayMsg}${suffix}`);
 
-    // File output (plain text, no ANSI codes)
+    // File output (plain text, full message)
     if (logFilePath) {
       const plain = `[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message}${suffix}\n`;
       appendFileSync(logFilePath, plain, "utf-8");
