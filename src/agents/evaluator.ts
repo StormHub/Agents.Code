@@ -69,7 +69,7 @@ or
     if (message.type === "assistant" && message.message?.content) {
       for (const block of message.message.content) {
         if (block.type === "text" && block.text.trim()) {
-          log.agent(block.text.slice(0, 200));
+          log.agent(block.text);
         }
       }
     } else if (message.type === "result") {

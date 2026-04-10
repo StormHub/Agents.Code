@@ -99,7 +99,7 @@ async function main() {
   const { prompt, sourceDir, overrides } = parseArgs(process.argv.slice(2));
 
   logger.info("Autonomous Coding Harness", {
-    prompt: prompt.slice(0, 100),
+    prompt,
     ...(sourceDir ? { sourceDir } : {}),
   });
 
