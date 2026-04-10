@@ -399,3 +399,5 @@ FodyWeavers.xsd
 dist/
 .env
 *.tsbuildinfo
+
+.DS_Store

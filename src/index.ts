@@ -16,9 +16,8 @@ function printUsage() {
   Input:
     A prompt string      Inline description of the app to build
     A path to a .md file Reads the file contents as the prompt.
-                         When a .md file is used, output-dir and artifacts-dir
-                         default to sibling "output" and "artifacts" folders
-                         next to the file (unless explicitly overridden).
+                         The file's parent folder becomes the project root
+                         (output-dir), with "artifacts" inside it.
 
   Options:
     --output-dir <path>     Output directory for the generated app
@@ -105,9 +104,9 @@ async function main() {
   });
 
   try {
-    // When input is a .md file, default output/artifacts dirs to sibling folders
+    // When input is a .md file, use its parent dir as the project root
     const outputDir =
-      overrides["output-dir"] ?? (sourceDir ? resolve(sourceDir, "output") : undefined);
+      overrides["output-dir"] ?? (sourceDir ? resolve(sourceDir) : undefined);
     const artifactsDir =
       overrides["artifacts-dir"] ?? (sourceDir ? resolve(sourceDir, "artifacts") : undefined);
 
