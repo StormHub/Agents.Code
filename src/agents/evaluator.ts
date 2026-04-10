@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
 import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
 import { ARTIFACT_FILES } from "../artifacts/types.js";
+import { consumeStream } from "../utils/stream.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/evaluator.md");
@@ -64,22 +65,7 @@ or
     },
   });
 
-  for await (const message of stream) {
-    if (message.type === "assistant" && message.message?.content) {
-      for (const block of message.message.content) {
-        if (block.type === "text" && block.text.trim()) {
-          log.agent(block.text);
-        }
-      }
-    } else if (message.type === "system" && (message as Record<string, unknown>).subtype === "init") {
-      const init = message as Record<string, unknown>;
-      log.info(`Evaluator session init (round ${round})`, { skills: init.skills, tools: init.tools, model: init.model });
-    } else if (message.type === "result") {
-      log.info(`Evaluator result (round ${round})`, {
-        subtype: (message as Record<string, unknown>).subtype as string | undefined,
-      });
-    }
-  }
+  await consumeStream(stream as AsyncIterable<Record<string, unknown>>, `Evaluator (round ${round})`, log);
 
   log.info(`Evaluator agent completed (round ${round})`);
 

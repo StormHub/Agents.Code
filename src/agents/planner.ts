@@ -4,6 +4,7 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
 import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
+import { consumeStream } from "../utils/stream.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/planner.md");
@@ -45,22 +46,7 @@ Please expand this into a comprehensive product specification and write it to ${
     },
   });
 
-  for await (const message of stream) {
-    if (message.type === "assistant" && message.message?.content) {
-      for (const block of message.message.content) {
-        if (block.type === "text" && block.text.trim()) {
-          log.agent(block.text);
-        }
-      }
-    } else if (message.type === "system" && (message as Record<string, unknown>).subtype === "init") {
-      const init = message as Record<string, unknown>;
-      log.info("Planner session init", { skills: init.skills, tools: init.tools, model: init.model });
-    } else if (message.type === "result") {
-      log.info("Planner result", {
-        subtype: (message as Record<string, unknown>).subtype as string | undefined,
-      });
-    }
-  }
+  await consumeStream(stream as AsyncIterable<Record<string, unknown>>, "Planner", log);
 
   log.info("Planner agent completed");
 }

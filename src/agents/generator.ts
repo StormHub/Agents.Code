@@ -5,6 +5,7 @@ import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
 import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
 import { ARTIFACT_FILES } from "../artifacts/types.js";
+import { consumeStream } from "../utils/stream.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/generator.md");
@@ -73,22 +74,7 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
     },
   });
 
-  for await (const message of stream) {
-    if (message.type === "assistant" && message.message?.content) {
-      for (const block of message.message.content) {
-        if (block.type === "text" && block.text.trim()) {
-          log.agent(block.text);
-        }
-      }
-    } else if (message.type === "system" && (message as Record<string, unknown>).subtype === "init") {
-      const init = message as Record<string, unknown>;
-      log.info(`Generator session init (round ${round})`, { skills: init.skills, tools: init.tools, model: init.model });
-    } else if (message.type === "result") {
-      log.info(`Generator result (round ${round})`, {
-        subtype: (message as Record<string, unknown>).subtype as string | undefined,
-      });
-    }
-  }
+  await consumeStream(stream as AsyncIterable<Record<string, unknown>>, `Generator (round ${round})`, log);
 
   log.info(`Generator agent completed (round ${round})`);
 }
