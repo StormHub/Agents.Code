@@ -65,20 +65,8 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
     apiKeyHelper: (overrides.auth?.apiKeyHelper) ?? process.env.CLAUDE_API_KEY_HELPER,
   };
 
-  // At least one auth method must be configured
-  const hasAuth =
-    auth.apiKey || auth.authToken || auth.useBedrock || auth.useVertex || auth.useFoundry || auth.apiKeyHelper;
-  if (!hasAuth) {
-    throw new Error(
-      "No authentication configured. Set one of:\n" +
-      "  - ANTHROPIC_API_KEY (direct API key)\n" +
-      "  - ANTHROPIC_AUTH_TOKEN (OAuth/session token)\n" +
-      "  - CLAUDE_CODE_USE_BEDROCK=1 (with AWS credentials)\n" +
-      "  - CLAUDE_CODE_USE_VERTEX=1 (with GCP credentials)\n" +
-      "  - CLAUDE_CODE_USE_FOUNDRY=1 (with Azure credentials)\n" +
-      "  Or use --api-key / --auth-token CLI flags."
-    );
-  }
+  // Auth is optional — if the user is signed into Claude Code locally,
+  // the SDK subprocess inherits the existing session automatically.
 
   return {
     auth,
