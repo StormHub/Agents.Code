@@ -19,7 +19,7 @@ export interface AuthConfig {
 
 export interface HarnessConfig {
   auth: AuthConfig;
-  model: string;
+  model?: string;
   maxQaRounds: number;
   maxBudgetUsd: number;
   outputDir: string;
@@ -70,7 +70,7 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
 
   return {
     auth,
-    model: overrides.model ?? process.env.MODEL ?? "claude-opus-4-5-20250918",
+    model: overrides.model ?? process.env.MODEL,
     maxQaRounds: overrides.maxQaRounds ?? parseInt(process.env.MAX_QA_ROUNDS ?? "3", 10),
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
     outputDir: overrides.outputDir ?? "./output",
