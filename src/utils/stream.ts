@@ -3,6 +3,10 @@ import type { Logger } from "./logger.js";
 /**
  * Consumes the SDK message stream, logging all relevant message types.
  * Returns the result message if one was received, or undefined if the stream ended without one.
+ *
+ * If a successful result was already received and the process subsequently crashes
+ * (e.g., from plugins running after completion), the crash is logged as a warning
+ * rather than propagated as a fatal error.
  */
 export async function consumeStream(
   stream: AsyncIterable<Record<string, unknown>>,
@@ -10,79 +14,89 @@ export async function consumeStream(
   log: Logger
 ): Promise<Record<string, unknown> | undefined> {
   let lastResult: Record<string, unknown> | undefined;
+  let succeeded = false;
 
-  for await (const message of stream) {
-    const type = message.type as string;
+  try {
+    for await (const message of stream) {
+      const type = message.type as string;
 
-    switch (type) {
-      case "assistant": {
-        const msg = message.message as { content?: Array<{ type: string; text?: string }> } | undefined;
-        const error = message.error as string | undefined;
-        if (error) {
-          log.error(`${agentName} assistant error: ${error}`);
-        }
-        if (msg?.content) {
-          for (const block of msg.content) {
-            if (block.type === "text" && block.text?.trim()) {
-              log.agent(block.text);
+      switch (type) {
+        case "assistant": {
+          const msg = message.message as { content?: Array<{ type: string; text?: string }> } | undefined;
+          const error = message.error as string | undefined;
+          if (error) {
+            log.error(`${agentName} assistant error: ${error}`);
+          }
+          if (msg?.content) {
+            for (const block of msg.content) {
+              if (block.type === "text" && block.text?.trim()) {
+                log.agent(block.text);
+              }
             }
           }
+          break;
         }
-        break;
-      }
 
-      case "result": {
-        lastResult = message;
-        const subtype = message.subtype as string;
-        const isError = message.is_error as boolean;
-        const cost = message.total_cost_usd as number | undefined;
-        const turns = message.num_turns as number | undefined;
+        case "result": {
+          lastResult = message;
+          const subtype = message.subtype as string;
+          const isError = message.is_error as boolean;
+          const cost = message.total_cost_usd as number | undefined;
+          const turns = message.num_turns as number | undefined;
 
-        if (isError || subtype !== "success") {
-          const errors = message.errors as string[] | undefined;
-          log.error(`${agentName} result: ${subtype}`, {
-            is_error: isError,
-            num_turns: turns,
-            cost_usd: cost,
-            errors: errors?.length ? errors : undefined,
-          });
-          if (errors?.length) {
-            for (const err of errors) {
-              log.error(`  → ${err}`);
+          if (isError || subtype !== "success") {
+            const errors = message.errors as string[] | undefined;
+            log.error(`${agentName} result: ${subtype}`, {
+              is_error: isError,
+              num_turns: turns,
+              cost_usd: cost,
+              errors: errors?.length ? errors : undefined,
+            });
+            if (errors?.length) {
+              for (const err of errors) {
+                log.error(`  → ${err}`);
+              }
             }
+          } else {
+            succeeded = true;
+            log.info(`${agentName} result: ${subtype}`, {
+              num_turns: turns,
+              cost_usd: cost,
+            });
           }
-        } else {
-          log.info(`${agentName} result: ${subtype}`, {
-            num_turns: turns,
-            cost_usd: cost,
-          });
+          break;
         }
-        break;
-      }
 
-      case "system": {
-        const subtype = message.subtype as string;
-        if (subtype === "init") {
-          log.info(`${agentName} session init`, {
-            model: message.model,
-            tools: message.tools,
-            skills: message.skills,
-          });
+        case "system": {
+          const subtype = message.subtype as string;
+          if (subtype === "init") {
+            log.info(`${agentName} session init`, {
+              model: message.model,
+              tools: message.tools,
+              skills: message.skills,
+            });
+          }
+          break;
         }
-        break;
-      }
 
-      case "auth_status": {
-        const error = message.error as string | undefined;
-        if (error) {
-          log.error(`${agentName} auth error: ${error}`);
+        case "auth_status": {
+          const error = message.error as string | undefined;
+          if (error) {
+            log.error(`${agentName} auth error: ${error}`);
+          }
+          break;
         }
-        break;
-      }
 
-      default:
-        log.debug(`${agentName} message type: ${type}`, { message });
-        break;
+        default:
+          break;
+      }
+    }
+  } catch (error) {
+    if (succeeded) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.warn(`${agentName} process crashed after successful completion: ${msg}`);
+    } else {
+      throw error;
     }
   }
 
