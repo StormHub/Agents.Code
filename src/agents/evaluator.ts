@@ -71,6 +71,9 @@ or
           log.agent(block.text);
         }
       }
+    } else if (message.type === "system" && (message as Record<string, unknown>).subtype === "init") {
+      const init = message as Record<string, unknown>;
+      log.info(`Evaluator session init (round ${round})`, { skills: init.skills, tools: init.tools, model: init.model });
     } else if (message.type === "result") {
       log.info(`Evaluator result (round ${round})`, {
         subtype: (message as Record<string, unknown>).subtype as string | undefined,

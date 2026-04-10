@@ -49,9 +49,12 @@ Please expand this into a comprehensive product specification and write it to ${
     if (message.type === "assistant" && message.message?.content) {
       for (const block of message.message.content) {
         if (block.type === "text" && block.text.trim()) {
-          log.agent(block.text); // trim text to 200?
+          log.agent(block.text);
         }
       }
+    } else if (message.type === "system" && (message as Record<string, unknown>).subtype === "init") {
+      const init = message as Record<string, unknown>;
+      log.info("Planner session init", { skills: init.skills, tools: init.tools, model: init.model });
     } else if (message.type === "result") {
       log.info("Planner result", {
         subtype: (message as Record<string, unknown>).subtype as string | undefined,
