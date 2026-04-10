@@ -31,7 +31,7 @@ Application directory: ${outputDir}
 1. Read the spec from: ${artifactsDir}/${ARTIFACT_FILES.SPEC}
 2. Read the build status from: ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
 3. Start both the frontend and backend applications
-4. Test every feature against the spec using Playwright
+4. Test every feature against the spec 
 5. Grade each criterion and write feedback to: ${artifactsDir}/${ARTIFACT_FILES.QA_FEEDBACK}
 
 Be rigorous. Be specific. Do not be generous.
@@ -53,13 +53,6 @@ or
       allowDangerouslySkipPermissions: true,
       maxBudgetUsd: config.maxBudgetUsd * 0.1,
       settingSources: config.settingSources,
-      mcpServers: {
-        playwright: {
-          type: "stdio",
-          command: "npx",
-          args: ["@playwright/mcp@latest"],
-        },
-      },
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
     },

@@ -81,6 +81,7 @@ export async function consumeStream(
       }
 
       default:
+        log.debug(`${agentName} message type: ${type}`, { message });
         break;
     }
   }
