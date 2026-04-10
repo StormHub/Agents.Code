@@ -1,6 +1,6 @@
 ## Project
 
-A weather chat application where users ask about weather for any location. Responses are rendered as visual UI components, not plain text.
+A weather chat agent where users ask about weather for any location. Responses are rendered as visual UI components, not plain text.
 
 ## Architecture
 
@@ -16,16 +16,30 @@ User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
 ## Directory Structure
 - api folder for backend, create a single Dockerfile to run the the api
 - app folder for frontend, create a single Dockerfile to run the the app
-- docker-compose.yaml file to run both backend and frontend, this MUST be used as single point of entry to run the entire application
+- docker-compose.yaml file to run both backend and frontend, this is the single point of entry to run the entire application
+
+## Docker & Runtime
+- docker-compose.yaml at the project root is the ONLY way to run the app — `docker compose up` must start both backend and frontend
+- Do NOT include an Ollama Docker image/service — the app connects to the host machine's local Ollama at `http://host.docker.internal:11434`
+- Backend Dockerfile should be a multi-stage .NET build
+- Frontend Dockerfile should be a multi-stage Next.js build
 
 ## Backend
 - **Runtime**: .NET 10 latest
-- **(Microsoft Agent Framework)[https://github.com/microsoft/agent-framework]** to build weather agent with get_weather too call
-- **LLM**: Connect agent with local Ollama model of `qwen2.5` (must support tool calling)
-- **Expose Agent by AG-UI (Agent User Interaction Protocol) and streams agent events over HTTP
-- **Weather data**: Local simulation — no external API, returns randomized plausible data
+
+### Architecture
+The backend is an AI agent implemented by Microsoft Agent Framework exposed via AG-UI protocol as http streamed messages.
+
+### Microsoft Agent Framework
+- NuGet packages: `Microsoft.Agents.AI`, `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`, `Microsoft.Agents.AI.OpenAI`
+- Create a `ChatClientAgent` using `chatClient.AsAIAgent(name, instructions, tools)` 
+- Register AG-UI services with `builder.Services.AddAGUI()`
+- Expose the agent via `app.MapAGUI("/", agent)` — this streams responses as Server-Sent Events (SSE)
+- Connect to local Ollama model (`qwen2.5:latest`) via `OllamaSharp` as `IChatClient` — Ollama URL should be configurable via environment variable, defaulting to `http://host.docker.internal:11434`
 
 ### Simulated Weather Tool
+- Define using `[Description]` attribute + `AIFunctionFactory.Create(GetWeather)`
+- Use `ConfigureHttpJsonOptions` with a `JsonSerializerContext` for source-generated serialization
 
 The LLM can call one tool:
 
@@ -54,9 +68,8 @@ The tool generates plausible simulated data for any location string. `WeatherRes
 ```
 
 ## Frontend
-- **Framework**: Nextjs
-- **Chat based input and output interface**
-- **AI integration**: [Vercel AI SDK](https://github.com/vercel/ai) — connects to the AG-UI backend and handles streaming
-- **Weather rendering**: [json-render](https://github.com/vercel-labs/json-render) — maps `WeatherResult` JSON fields to visual weather components (temperature display, condition icon, forecast row, etc.)
+- **Framework**: Next.js (App Router, TypeScript)
+- **Chat UI**: Use `useChat` hook from `@ai-sdk/react` to connect to the AG-UI backend and handle streaming — do not use manual fetch or SSE parsing
+- **Weather rendering**: Use `@json-render/react` `<Renderer>` component with `@json-render/core` `defineCatalog` and `defineRegistry` to map `WeatherResult` JSON fields to visual weather components (temperature display, condition icon, forecast cards). Use `@json-render/shadcn` pre-built component definitions where suitable.
 
 The LLM must respond with a `WeatherResult` JSON object. The frontend renders it visually via json-render component mappings — no raw weather text is shown to the user.
