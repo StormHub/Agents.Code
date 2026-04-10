@@ -3,10 +3,10 @@ Things that AI code fails to follow
 - Model: claude-haiku-4.5
 - Completely missed AG-UI in both frontend and backend.
 
-## Backend /WeatherChatApi
+## Backend /api
 - Ignored Microsoft Agent Framework including AGUI completely, use Ollama directly
 
-## Frontend /weather-chat 
+## Frontend /app 
 - Ignored AI SDK, used plain fetch, no streaming
 
 # Reasons
