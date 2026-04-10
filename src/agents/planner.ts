@@ -11,11 +11,10 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/planner.md");
 export async function runPlanner(
   userPrompt: string,
   config: HarnessConfig,
-  log: Logger,
-  skillAppendix: string = ""
+  log: Logger
 ): Promise<void> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const systemPrompt = basePrompt + skillAppendix;
+  const systemPrompt = basePrompt;
 
   log.agent("Starting planner agent", { model: config.model });
 

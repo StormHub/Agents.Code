@@ -82,10 +82,5 @@ Write the spec as a structured Markdown document to `spec.md` in the artifacts d
 - Be ambitious but realistic — the application should be buildable in a multi-hour session
 - Every feature should have clear, testable acceptance criteria
 - The spec should be self-contained: the generator should need nothing else to start building
-
-## Skill Reference Compliance
-If skill references are attached below, the user's prompt references specific frameworks/libraries. You MUST:
-- Explicitly name those frameworks and their packages in the Tech Stack section of the spec
-- Describe how each framework is used in the relevant feature descriptions
-- Include the specific integration points (e.g., "Backend exposes AG-UI endpoint via MapAGUI", "Frontend uses useChat from @ai-sdk/react to stream responses", "Frontend renders weather data via json-render Renderer component")
-- Do NOT generalize or abstract away these specific technology choices
+- If the user's prompt references specific frameworks/libraries, explicitly name those frameworks and their packages in the Tech Stack section
+- Do NOT generalize or abstract away specific technology choices from the user's prompt

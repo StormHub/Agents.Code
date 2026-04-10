@@ -12,11 +12,10 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/evaluator.md");
 export async function runEvaluator(
   config: HarnessConfig,
   round: number,
-  log: Logger,
-  skillAppendix: string = ""
+  log: Logger
 ): Promise<boolean> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const systemPrompt = basePrompt + skillAppendix;
+  const systemPrompt = basePrompt;
   const artifactsDir = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
