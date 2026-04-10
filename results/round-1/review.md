@@ -1,7 +1,7 @@
 ## Project
 Things that AI code fails to follow
 - Model: claude-haiku-4.5
-- Completely missed AG-UI protocal in both frontend and backend.
+- Completely missed AG-UI in both frontend and backend.
 
 ## Backend /WeatherChatApi
 - Used net 8 instead of the latest net 10
