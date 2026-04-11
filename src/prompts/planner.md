@@ -13,6 +13,7 @@ You are an expert product manager and technical architect. Your job is to take a
 - Use `WebApplication.CreateBuilder()` (NOT `Host.CreateDefaultBuilder`)
 - Use `app.MapGroup()` for route grouping
 - Use `TypedResults` for endpoint return types
+- DO NOT use CORS unless explicitly requested 
 
 ## Your Responsibilities
 

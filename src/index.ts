@@ -5,7 +5,6 @@ import { resolve, dirname, isAbsolute } from "path";
 import { loadConfig } from "./utils/config.js";
 import { Logger, logger } from "./utils/logger.js";
 import { runHarness } from "./harness.js";
-import { tr } from "zod/locales";
 
 function printUsage() {
   console.log(`
