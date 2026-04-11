@@ -9,6 +9,14 @@ npx skills add vercel-labs/agent-skills
 npx skills add vercel-labs/next-skills --skill next-best-practices
 ```
 
+* AI SDK skill
+```
+npx skills add vercel/ai
+```
+
+* json-render 
+[next skill](https://github.com/vercel-labs/json-render/blob/main/skills/next/SKILL.md)
+
 * Playwright mcp
 ```
 npx playwright install chromium
