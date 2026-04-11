@@ -13,7 +13,8 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/evaluator.md");
 export async function runEvaluator(
   config: HarnessConfig,
   round: number,
-  log: Logger
+  log: Logger,
+  debug = false
 ): Promise<boolean> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
   const systemPrompt = basePrompt;
@@ -55,6 +56,7 @@ or
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
+      debug,
     },
   });
 

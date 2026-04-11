@@ -9,9 +9,10 @@ import { runEvaluator } from "./agents/evaluator.js";
 export interface HarnessOptions {
   prompt: string;
   config: HarnessConfig;
+  debug?: boolean;
 }
 
-export async function runHarness({ prompt, config }: HarnessOptions): Promise<void> {
+export async function runHarness({ prompt, config, debug }: HarnessOptions): Promise<void> {
   const log = logger.child("orchestrator");
   const startTime = Date.now();
 
@@ -37,7 +38,7 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
   } else {
     log.info("═══ Phase 1: Planning ═══");
     const planStart = Date.now();
-    await runPlanner(prompt, config, log.child("planner"));
+    await runPlanner(prompt, config, log.child("planner"), debug);
     const planDuration = ((Date.now() - planStart) / 1000 / 60).toFixed(1);
     log.info(`Planning completed in ${planDuration} min`);
 
@@ -59,7 +60,7 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
 
     log.info("═══ Phase 3: QA (resume evaluation) ═══");
     const qaStart = Date.now();
-    passed = await runEvaluator(config, 1, log.child("evaluator"));
+    passed = await runEvaluator(config, 1, log.child("evaluator"), debug);
     const qaDuration = ((Date.now() - qaStart) / 1000 / 60).toFixed(1);
     log.info(`QA (resume) completed in ${qaDuration} min`, { passed });
 
@@ -76,14 +77,14 @@ export async function runHarness({ prompt, config }: HarnessOptions): Promise<vo
     // Build
     log.info(`═══ Phase 2: Build (Round ${round}/${config.maxQaRounds}) ═══`);
     const buildStart = Date.now();
-    await runGenerator(config, round, log.child("generator"));
+    await runGenerator(config, round, log.child("generator"), debug);
     const buildDuration = ((Date.now() - buildStart) / 1000 / 60).toFixed(1);
     log.info(`Build round ${round} completed in ${buildDuration} min`);
 
     // QA
     log.info(`═══ Phase 3: QA (Round ${round}/${config.maxQaRounds}) ═══`);
     const qaStart = Date.now();
-    passed = await runEvaluator(config, round, log.child("evaluator"));
+    passed = await runEvaluator(config, round, log.child("evaluator"), debug);
     const qaDuration = ((Date.now() - qaStart) / 1000 / 60).toFixed(1);
     log.info(`QA round ${round} completed in ${qaDuration} min`, { passed });
 

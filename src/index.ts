@@ -5,6 +5,7 @@ import { resolve, dirname, isAbsolute } from "path";
 import { loadConfig } from "./utils/config.js";
 import { Logger, logger } from "./utils/logger.js";
 import { runHarness } from "./harness.js";
+import { tr } from "zod/locales";
 
 function printUsage() {
   console.log(`
@@ -133,7 +134,7 @@ async function main() {
     Logger.setLogFile(logFile);
     logger.info(`Logging to ${logFile}`);
 
-    await runHarness({ prompt, config });
+    await runHarness({ prompt, config, debug: true });
   } catch (error) {
     logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof Error && error.stack) {

@@ -14,7 +14,6 @@ You MUST use .NET 10 with modern patterns. Legacy .NET code is a build-breaking 
 **Project setup:**
 - `dotnet new webapi` then set `<TargetFramework>net10.0</TargetFramework>` in .csproj
 - Use `<Nullable>enable</Nullable>` and `<ImplicitUsings>enable</ImplicitUsings>`
-- Reference EF Core 10.x packages: `Microsoft.EntityFrameworkCore.Sqlite` version 10.*
 
 **Patterns to USE (modern .NET 10):**
 ```csharp

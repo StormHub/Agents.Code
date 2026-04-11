@@ -13,8 +13,9 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/generator.md");
 export async function runGenerator(
   config: HarnessConfig,
   round: number,
-  log: Logger
-): Promise<void> {
+  log: Logger,
+  debug = false
+  ): Promise<void> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
   const systemPrompt = basePrompt;
   const artifactsDir = resolve(config.artifactsDir);
@@ -71,6 +72,7 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
+      debug,
     },
   });
 
