@@ -66,7 +66,7 @@ Before scoring Code Quality, verify the .NET backend:
 1. Read the `.csproj` file — `<TargetFramework>` MUST be `net10.0`. If it targets net6.0/net7.0/net8.0/net9.0, this is an automatic Code Quality FAIL (score ≤ 3).
 2. Check `Program.cs` — it MUST use `WebApplication.CreateBuilder()`, NOT `Host.CreateDefaultBuilder()` or a `Startup.cs` class.
 3. Check for legacy patterns: `IHostBuilder`, `Startup.ConfigureServices`, `app.UseEndpoints()` — any of these is a CRITICAL bug.
-4. Verify EF Core packages are version 10.x in the .csproj.
+
 
 ### Step 5: Write Feedback
 
