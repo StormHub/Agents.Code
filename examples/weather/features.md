@@ -28,6 +28,7 @@ User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
 - .NET 10
 - AI agent implemented by Microsoft Agent Framework exposed via AG-UI protocol as http streamed messages.
 - Connect to local Ollama model (`qwen2.5:latest`) via `OllamaSharp` as `IChatClient` — Ollama URL should be configurable via environment variable, defaulting to `http://host.docker.internal:11434`
+- NEVER use CORS, all http api MUST be from nextjs server side api.
 
 ### Simulated Weather Tool
 - Define using `[Description]` attribute + `AIFunctionFactory.Create(GetWeather)`
