@@ -15,7 +15,7 @@ User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
 ```
 ## Directory Structure
 - api folder for backend, create a single Dockerfile to run the the api
-- app folder for frontend, create a single Dockerfile to run the the app
+- ui folder for frontend, create a single Dockerfile to run the the app
 - docker-compose.yaml file to run both backend and frontend, this is the single point of entry to run the entire application
 
 ## Docker & Runtime
@@ -25,16 +25,8 @@ User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
 - Frontend Dockerfile should be a multi-stage Next.js build
 
 ## Backend
-- **Runtime**: .NET 10 latest
-
-### Architecture
-The backend is an AI agent implemented by Microsoft Agent Framework exposed via AG-UI protocol as http streamed messages.
-
-### Microsoft Agent Framework
-- NuGet packages: `Microsoft.Agents.AI`, `Microsoft.Agents.AI.Hosting.AGUI.AspNetCore`, `Microsoft.Agents.AI.OpenAI`
-- Create a `ChatClientAgent` using `chatClient.AsAIAgent(name, instructions, tools)` 
-- Register AG-UI services with `builder.Services.AddAGUI()`
-- Expose the agent via `app.MapAGUI("/", agent)` — this streams responses as Server-Sent Events (SSE)
+- .NET 10
+- AI agent implemented by Microsoft Agent Framework exposed via AG-UI protocol as http streamed messages.
 - Connect to local Ollama model (`qwen2.5:latest`) via `OllamaSharp` as `IChatClient` — Ollama URL should be configurable via environment variable, defaulting to `http://host.docker.internal:11434`
 
 ### Simulated Weather Tool
@@ -68,8 +60,6 @@ The tool generates plausible simulated data for any location string. `WeatherRes
 ```
 
 ## Frontend
-- **Framework**: Next.js (App Router, TypeScript)
-- **Chat UI**: Use `useChat` hook from `@ai-sdk/react` to connect to the AG-UI backend and handle streaming — do not use manual fetch or SSE parsing
-- **Weather rendering**: Use `@json-render/react` `<Renderer>` component with `@json-render/core` `defineCatalog` and `defineRegistry` to map `WeatherResult` JSON fields to visual weather components (temperature display, condition icon, forecast cards). Use `@json-render/shadcn` pre-built component definitions where suitable.
-
-The LLM must respond with a `WeatherResult` JSON object. The frontend renders it visually via json-render component mappings — no raw weather text is shown to the user.
+- Next.js (App Router, TypeScript)
+- Use ai-sdk to connect to the AG-UI backend and handle streaming — do not use manual fetch or SSE parsing
+- Use json-render with `WeatherResult` JSON object. The frontend renders it visually via json-render component mappings — no raw weather text is shown to the user.
