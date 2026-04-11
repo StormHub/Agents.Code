@@ -54,6 +54,13 @@ or
       allowDangerouslySkipPermissions: true,
       maxBudgetUsd: config.maxBudgetUsd * 0.1,
       settingSources: config.settingSources,
+      mcpServers: {
+        playwright: {
+          type: "stdio",
+          command: "npx",
+          args: ["@playwright/mcp@latest"],
+        },
+      },      
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
       debug,
