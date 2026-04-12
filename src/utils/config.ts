@@ -1,4 +1,5 @@
 import "dotenv/config";
+import { resolve } from "path";
 
 export interface AuthConfig {
   /** Direct API key (ANTHROPIC_API_KEY) */
@@ -74,7 +75,7 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
     maxQaRounds: overrides.maxQaRounds ?? parseInt(process.env.MAX_QA_ROUNDS ?? "3", 10),
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
     outputDir: overrides.outputDir ?? "./output",
-    artifactsDir: overrides.artifactsDir ?? "./artifacts",
+    artifactsDir: resolve(overrides.outputDir ?? "./output", "artifacts"),
     settingSources: overrides.settingSources ?? ["user", "project", "local"],
   };
 }

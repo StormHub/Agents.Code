@@ -17,26 +17,19 @@ function printUsage() {
     A prompt string      Inline description of the app to build
     A path to a .md file Reads the file contents as the prompt.
                          The file's parent folder becomes the project root
-                         (output-dir), with "artifacts" inside it.
+                         (output-dir), with "artifacts/" inside it.
 
   Options:
     --output-dir <path>     Output directory for the generated app
-    --artifacts-dir <path>  Directory for inter-agent artifacts
-    --model <model>         Claude model to use (default: claude-opus-4-5-20250918)
+    --model <model>         Claude model to use
     --max-rounds <n>        Max QA rounds (default: 3)
     --max-budget <usd>      Max budget in USD (default: 50)
-    --api-key <key>         Anthropic API key (or set ANTHROPIC_API_KEY)
-    --auth-token <token>    Anthropic auth token (or set ANTHROPIC_AUTH_TOKEN)
-    --base-url <url>        Custom API base URL (or set ANTHROPIC_BASE_URL)
-    --bedrock               Use Amazon Bedrock (or set CLAUDE_CODE_USE_BEDROCK=1)
-    --vertex                Use Google Vertex AI (or set CLAUDE_CODE_USE_VERTEX=1)
-    --foundry               Use Microsoft Azure Foundry (or set CLAUDE_CODE_USE_FOUNDRY=1)
     --help                  Show this help
 
   Examples:
     npx tsx src/index.ts "Build a task management app with kanban boards"
     npx tsx src/index.ts /path/to/my-app-spec.md
-    npx tsx src/index.ts ./specs/chat-app.md --model claude-sonnet-4-20250514
+    npx tsx src/index.ts ./specs/chat-app.md --model haiku
   `);
 }
 
@@ -58,10 +51,6 @@ function parseArgs(args: string[]): ParsedInput {
       process.exit(0);
     }
     // Boolean flags (no value)
-    if (arg === "--bedrock" || arg === "--vertex" || arg === "--foundry") {
-      overrides[arg.slice(2)] = "1";
-      continue;
-    }
     if (arg?.startsWith("--") && i + 1 < args.length) {
       const key = arg.slice(2);
       overrides[key] = args[++i]!;
@@ -107,23 +96,12 @@ async function main() {
     // When input is a .md file, use its parent dir as the project root
     const outputDir =
       overrides["output-dir"] ?? (sourceDir ? resolve(sourceDir) : undefined);
-    const artifactsDir =
-      overrides["artifacts-dir"] ?? (sourceDir ? resolve(sourceDir, "artifacts") : undefined);
 
     const config = loadConfig({
       outputDir,
-      artifactsDir,
       model: overrides["model"],
       maxQaRounds: overrides["max-rounds"] ? parseInt(overrides["max-rounds"], 10) : undefined,
       maxBudgetUsd: overrides["max-budget"] ? parseFloat(overrides["max-budget"]) : undefined,
-      auth: {
-        apiKey: overrides["api-key"],
-        authToken: overrides["auth-token"],
-        baseUrl: overrides["base-url"],
-        useBedrock: overrides["bedrock"] === "1" ? true : undefined,
-        useVertex: overrides["vertex"] === "1" ? true : undefined,
-        useFoundry: overrides["foundry"] === "1" ? true : undefined,
-      },
     });
 
     // Initialize log file in the artifacts directory
