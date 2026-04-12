@@ -25,6 +25,7 @@ function printUsage() {
     --max-rounds <n>        Max QA rounds (default: 3)
     --max-budget <usd>      Max budget in USD (default: 50)
     --plan-only             Only run the planner (generate spec.md, then stop)
+    --debug                 Enable debug mode
     --help                  Show this help
 
   Examples:
@@ -53,6 +54,10 @@ function parseArgs(args: string[]): ParsedInput {
     }
     if (arg === "--plan-only") {
       overrides["plan-only"] = "true";
+      continue;
+    }
+    if (arg === "--debug") {
+      overrides["debug"] = "true";
       continue;
     }
     // Key-value flags
@@ -107,7 +112,7 @@ async function main() {
       model: overrides["model"],
       maxQaRounds: overrides["max-rounds"] ? parseInt(overrides["max-rounds"], 10) : undefined,
       maxBudgetUsd: overrides["max-budget"] ? parseFloat(overrides["max-budget"]) : undefined,
-      debug: true,
+      debug: overrides["debug"] === "true",
       planOnly: overrides["plan-only"] === "true",
     });
 
