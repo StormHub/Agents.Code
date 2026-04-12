@@ -24,6 +24,7 @@ function printUsage() {
     --model <model>         Claude model to use
     --max-rounds <n>        Max QA rounds (default: 3)
     --max-budget <usd>      Max budget in USD (default: 50)
+    --plan-only             Only run the planner (generate spec.md, then stop)
     --help                  Show this help
 
   Examples:
@@ -50,7 +51,11 @@ function parseArgs(args: string[]): ParsedInput {
       printUsage();
       process.exit(0);
     }
-    // Boolean flags (no value)
+    if (arg === "--plan-only") {
+      overrides["plan-only"] = "true";
+      continue;
+    }
+    // Key-value flags
     if (arg?.startsWith("--") && i + 1 < args.length) {
       const key = arg.slice(2);
       overrides[key] = args[++i]!;
@@ -111,7 +116,7 @@ async function main() {
     Logger.setLogFile(logFile);
     logger.info(`Logging to ${logFile}`);
 
-    await runHarness({ prompt, config, debug: true });
+    await runHarness({ prompt, config, debug: true, planOnly: overrides["plan-only"] === "true" });
   } catch (error) {
     logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof Error && error.stack) {

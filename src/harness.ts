@@ -10,9 +10,10 @@ export interface HarnessOptions {
   prompt: string;
   config: HarnessConfig;
   debug?: boolean;
+  planOnly?: boolean;
 }
 
-export async function runHarness({ prompt, config, debug }: HarnessOptions): Promise<void> {
+export async function runHarness({ prompt, config, debug, planOnly }: HarnessOptions): Promise<void> {
   const log = logger.child("orchestrator");
   const startTime = Date.now();
 
@@ -45,6 +46,13 @@ export async function runHarness({ prompt, config, debug }: HarnessOptions): Pro
     if (!existsSync(specPath)) {
       throw new Error(`Planner failed to write spec to ${specPath}`);
     }
+  }
+
+  if (planOnly) {
+    const totalDuration = ((Date.now() - startTime) / 1000 / 60).toFixed(1);
+    log.info(`\n📋 Plan-only mode completed in ${totalDuration} min`);
+    log.info(`   Spec written to: ${specPath}`);
+    return;
   }
 
   // ── Phase 2+3: Build → QA Loop ────────────────────────────────────
