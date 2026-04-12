@@ -61,13 +61,6 @@ Is the codebase well-structured and using modern frameworks correctly?
 - **3-4**: Poorly organized, significant issues, or uses legacy framework patterns
 - **1-2**: Unmaintainable
 
-**Required code quality check — .NET version compliance:**
-Before scoring Code Quality, verify the .NET backend:
-1. Read the `.csproj` file — `<TargetFramework>` MUST be `net10.0`. If it targets net6.0/net7.0/net8.0/net9.0, this is an automatic Code Quality FAIL (score ≤ 3).
-2. Check `Program.cs` — it MUST use `WebApplication.CreateBuilder()`, NOT `Host.CreateDefaultBuilder()` or a `Startup.cs` class.
-3. Check for legacy patterns: `IHostBuilder`, `Startup.ConfigureServices`, `app.UseEndpoints()` — any of these is a CRITICAL bug.
-
-
 ### Step 5: Write Feedback
 
 Write detailed, actionable feedback to `artifacts/qa-feedback.md`:

@@ -1,66 +1,41 @@
-## Project
+## project
+A weather chat agent where users ask about weather for any location.
 
-A weather chat agent where users ask about weather for any location. Responses are rendered as visual UI components, not plain text.
+## technology stack
+### frontend
+- **framework**: Next.js (App Router, TypeScript)
+- **styling**: Tailwind CSS
+- **state management**: AI SDK useChat hook
+- **markdown** React Markdown for message rendering
+- **UI Rendering**: json-render for weather visual UI
 
-## Architecture
+### backend
+- **runtime**: .NET 10 (C# 13, ASP.NET Core Web API)
+- **ai integration**: Microsoft Agent Framework with local LLM (via Ollama) for chat completions
+- **streaming**: AG-UI
 
-The user chats via a Next.js frontend. The frontend connects to a .NET backend agent using the AG-UI protocol. The agent uses a local LLM (via Ollama) with a simulated weather tool. The LLM calls the tool, which returns structured JSON. The frontend renders that JSON as visual weather components.
+### communication
+- **api**: RESTful endpoints
+- **streaming**: SSE for real-time message streaming
 
-```
-User → Next.js (AI SDK) → AG-UI → .NET Agent → Ollama (qwen2.5:latest)
-                                                      ↓ tool call
-                                              SimulatedWeatherTool
-                                                      ↓ WeatherResult JSON
-                         json-render ← Next.js ←────────────────────
-```
-## Directory Structure
-- api folder for backend, create a single Dockerfile to run the the api
-- ui folder for frontend, create a single Dockerfile to run the the app
-- docker-compose.yaml file to run both backend and frontend, this is the single point of entry to run the entire application
+## core features
+### chat interface
+- Clean, centered chat layout with message bubbles
+- Streaming message responses with typing indicator
+- Markdown rendering with proper formatting
+- Weather results are rendered as visual UI components
+- Multi-turn conversations with context
+- Stop generation button during streaming
+- Input field with auto-resize textarea
+- Keyboard shortcuts (Enter to send, Shift+Enter for newline)
 
-## Docker & Runtime
-- docker-compose.yaml at the project root is the ONLY way to run the app — `docker compose up` must start both backend and frontend
-- Do NOT include an Ollama Docker image/service — the app connects to the host machine's local Ollama at `http://host.docker.internal:11434`
-- Backend Dockerfile should be a multi-stage .NET build
-- Frontend Dockerfile should be a multi-stage Next.js build
+### conversation management
+- Create new conversations
 
-## Backend
-- .NET 10
-- AI agent implemented by Microsoft Agent Framework exposed via AG-UI protocol as http streamed messages.
-- Connect to local Ollama model (`qwen2.5:latest`) via `OllamaSharp` as `IChatClient` — Ollama URL should be configurable via environment variable, defaulting to `http://host.docker.internal:11434`
-- NEVER use CORS, all http api MUST be from nextjs server side api.
+### api endpoints summary
+- POST /api/chat
 
-### Simulated Weather Tool
-- Define using `[Description]` attribute + `AIFunctionFactory.Create(GetWeather)`
-- Use `ConfigureHttpJsonOptions` with a `JsonSerializerContext` for source-generated serialization
+### ui layout
+- Only main chat area
+- Bottom input area with send button and options
 
-The LLM can call one tool:
-
-```
-get_weather(location: string) → WeatherResult
-```
-
-The tool generates plausible simulated data for any location string. `WeatherResult` schema:
-
-```json
-{
-  "location": "string",
-  "temperature_c": number,
-  "condition": "sunny" | "cloudy" | "rainy" | "snowy" | "stormy",
-  "humidity_percent": number,
-  "wind_kph": number,
-  "forecast": [
-    {
-      "day": "string",
-      "high_c": number,
-      "low_c": number,
-      "condition": "string"
-    }
-  ]
-}
-```
-
-## Frontend
-- Next.js (App Router, TypeScript)
-- Use ai-sdk to connect to the AG-UI backend and handle streaming — do not use manual fetch or SSE parsing
-- Use json-render with `WeatherResult` JSON object. The frontend renders it visually via json-render component mappings — no raw weather text is shown to the user.
