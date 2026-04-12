@@ -78,6 +78,8 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
     outputDir: overrides.outputDir ?? "./output",
     artifactsDir: resolve(overrides.outputDir ?? "./output", "artifacts"),
+    debug: overrides.debug ?? false,
+    planOnly: overrides.planOnly ?? false,
     settingSources: overrides.settingSources ?? ["user", "project", "local"],
   };
 }

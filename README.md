@@ -52,12 +52,6 @@ npx tsx src/index.ts "Build a task management app with kanban boards"
 
 4. **Iteration** — If QA fails, the generator gets the evaluator's feedback and fixes issues. This loop repeats up to `--max-rounds` times.
 
-## Target Stack
-
-- **Frontend**: Next.js 14+ (App Router), TypeScript, Tailwind CSS
-- **Backend**: .NET 10, ASP.NET Core Web API, Entity Framework Core
-- **Database**: SQLite (dev) / PostgreSQL (prod)
-
 ## Skills & Plugins
 
 ```bash
