@@ -27,6 +27,8 @@ export interface HarnessConfig {
   artifactsDir: string;
   /** Load settings from filesystem (user, project, local) */
   settingSources: Array<"user" | "project" | "local">;
+  planOnly?: boolean;
+  debug?: boolean;
 }
 
 /**

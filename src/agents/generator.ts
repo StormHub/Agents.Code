@@ -14,7 +14,6 @@ export async function runGenerator(
   config: HarnessConfig,
   round: number,
   log: Logger,
-  debug = false
   ): Promise<void> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
   const systemPrompt = basePrompt;
@@ -79,7 +78,7 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
       },      
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
-      debug,
+      debug: config.debug,
     },
   });
 

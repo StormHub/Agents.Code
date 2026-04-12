@@ -107,6 +107,8 @@ async function main() {
       model: overrides["model"],
       maxQaRounds: overrides["max-rounds"] ? parseInt(overrides["max-rounds"], 10) : undefined,
       maxBudgetUsd: overrides["max-budget"] ? parseFloat(overrides["max-budget"]) : undefined,
+      debug: true,
+      planOnly: overrides["plan-only"] === "true",
     });
 
     // Initialize log file in the artifacts directory
@@ -116,7 +118,7 @@ async function main() {
     Logger.setLogFile(logFile);
     logger.info(`Logging to ${logFile}`);
 
-    await runHarness({ prompt, config, debug: true, planOnly: overrides["plan-only"] === "true" });
+    await runHarness({ prompt, config });
   } catch (error) {
     logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof Error && error.stack) {

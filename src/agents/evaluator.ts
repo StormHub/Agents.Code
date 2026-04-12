@@ -14,7 +14,6 @@ export async function runEvaluator(
   config: HarnessConfig,
   round: number,
   log: Logger,
-  debug = false
 ): Promise<boolean> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
   const systemPrompt = basePrompt;
@@ -63,7 +62,7 @@ or
       },      
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
-      debug,
+      debug: config.debug,
     },
   });
 

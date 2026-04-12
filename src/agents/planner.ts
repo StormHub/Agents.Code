@@ -13,7 +13,6 @@ export async function runPlanner(
   userPrompt: string,
   config: HarnessConfig,
   log: Logger,
-  debug = false
 ): Promise<void> {
   const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
   const systemPrompt = basePrompt;
@@ -44,7 +43,7 @@ Please expand this into a comprehensive product specification and write it to ${
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
-      debug
+      debug: config.debug
     },
   });
 
