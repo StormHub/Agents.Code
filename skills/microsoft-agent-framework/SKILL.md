@@ -1,5 +1,5 @@
 ---
-name: microsoft-agent-framework-dotnet
+name: microsoft-agent-framework
 description: >-
   Expert guidance for building AI agents and multi-agent workflows using
   Microsoft Agent Framework for .NET (C#). Use this skill whenever the user
