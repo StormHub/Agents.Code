@@ -37,11 +37,9 @@ npx tsx src/index.ts "Build a task management app with kanban boards"
 
 ```
 --output-dir <path>     Output directory (default: ./output)
---artifacts-dir <path>  Artifacts directory (default: ./artifacts)
---model <model>         Claude model (default: claude-opus-4-5-20250918)
+--model <model>         Claude model
 --max-rounds <n>        Max QA rounds (default: 3)
 --max-budget <usd>      Max budget in USD (default: 50)
---api-key <key>         API key (or set ANTHROPIC_API_KEY)
 ```
 
 ## How It Works
