@@ -13,7 +13,7 @@ User Prompt → [Planner] → spec.md → [Generator] → app → [Evaluator/QA]
 | Agent | Role | Tools |
 |-------|------|-------|
 | **Planner** | Expands 1-4 sentence prompt into full product spec | File I/O |
-| **Generator** | Builds Next.js + .NET app from spec | File, Bash, Git |
+| **Generator** | Builds frontend and backend from spec | File, Bash, Git |
 | **Evaluator** | QA tests running app, grades against criteria | Playwright MCP |
 
 ## Quick Start
