@@ -4,59 +4,62 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
 import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
-import { ARTIFACT_FILES } from "../artifacts/types.js";
 import { consumeStream } from "../utils/stream.js";
+import {
+  type Step,
+  stepBuildStatusPath,
+  stepContractPath,
+  stepDir,
+  stepFeedbackPath,
+} from "../artifacts/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/generator.md");
 
-export async function runGenerator(
+export async function runStepGenerator(
+  step: Step,
+  attempt: number,
   config: HarnessConfig,
-  round: number,
   log: Logger,
-  ): Promise<void> {
-  const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const systemPrompt = basePrompt;
+): Promise<void> {
+  const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
   const artifactsDir = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
-  log.agent(`Starting generator agent (round ${round})`, { model: config.model });
+  const folder = stepDir(artifactsDir, step);
+  const contractPath = stepContractPath(artifactsDir, step);
+  const feedbackPath = stepFeedbackPath(artifactsDir, step);
+  const buildStatusPath = stepBuildStatusPath(artifactsDir, step);
 
-  let prompt: string;
+  const isRetry = attempt > 1 && existsSync(feedbackPath);
 
-  if (round === 1) {
-    prompt = `
-You are starting a fresh build. Read the product specification from:
-  ${artifactsDir}/${ARTIFACT_FILES.SPEC}
+  log.agent(
+    `Starting step generator — step ${step.index} (${step.slug}), attempt ${attempt}`,
+    { model: config.model },
+  );
 
-Build the complete application in:
-  ${outputDir}
+  const prompt = `
+You are implementing **step ${step.index}: ${step.title}** (attempt ${attempt}).
 
-The artifacts directory for writing build status is:
-  ${artifactsDir}
+Inputs:
+  - Contract (read this first): ${contractPath}
+${isRetry ? `  - Prior evaluator feedback (this is a retry — address every issue): ${feedbackPath}` : ""}
 
-Follow the workflow in your system prompt. Start with project setup, then implement all features.
-When done, write your build status to ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
+Application directory (cwd, build here): ${outputDir}
+Step folder (write build-status.md here): ${folder}
+
+When done, write your build status to: ${buildStatusPath}
+
+Follow your system prompt:
+  1. Read the contract.
+  2. Orient in the existing code.
+  3. Implement (data → server → client → wiring).
+  4. Run typecheck/build and any verification commands the contract specifies.
+  5. Git commit with message "Step ${step.index}${isRetry ? " fix" : ""}: <short summary>".
+  6. Write build-status.md (attempt ${attempt}).
+
+${isRetry ? "Focus the work on what the evaluator flagged. Do not regress prior steps." : "This is the first attempt at this step."}
 `.trim();
-  } else {
-    const feedbackPath = resolve(artifactsDir, ARTIFACT_FILES.QA_FEEDBACK);
-    const hasFeedback = existsSync(feedbackPath);
-
-    prompt = `
-This is build round ${round}. You are fixing issues found by QA.
-
-Product spec: ${artifactsDir}/${ARTIFACT_FILES.SPEC}
-Application directory: ${outputDir}
-${hasFeedback ? `QA Feedback: ${feedbackPath}` : "No QA feedback file found."}
-
-Read the QA feedback carefully and address every issue. Focus on:
-1. All critical and major bugs
-2. Any features that scored below threshold
-3. Any regressions from previous rounds
-
-After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
-`.trim();
-  }
 
   const stream = query({
     prompt,
@@ -67,7 +70,7 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.35,
+      maxBudgetUsd: config.maxBudgetUsd * 0.15,
       settingSources: config.settingSources,
       mcpServers: {
         playwright: {
@@ -75,14 +78,18 @@ After fixing, update ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
           command: "npx",
           args: ["@playwright/mcp@latest"],
         },
-      },      
+      },
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
       debug: config.debug,
     },
   });
 
-  await consumeStream(stream as AsyncIterable<Record<string, unknown>>, `Generator (round ${round})`, log);
+  await consumeStream(
+    stream as AsyncIterable<Record<string, unknown>>,
+    `Step ${step.index} generator (attempt ${attempt})`,
+    log,
+  );
 
-  log.info(`Generator agent completed (round ${round})`);
+  log.info(`Step generator completed for step ${step.index} (attempt ${attempt})`);
 }

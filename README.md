@@ -1,6 +1,6 @@
 # Agents.Code — Autonomous 3-Agent Coding Harness
 
-A [GAN-inspired](https://www.anthropic.com/engineering/harness-design-long-running-apps) autonomous coding harness built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes a short prompt and autonomously builds a full-stack application (Next.js + .NET) using three specialized agents.
+An autonomous coding harness built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes a short prompt and autonomously builds an application using three specialized agents. The planner picks the stack based on the prompt — the harness itself is stack-agnostic.
 
 ## Architecture
 
@@ -46,7 +46,7 @@ npx tsx src/index.ts "Build a task management app with kanban boards"
 
 1. **Planning** — The planner agent takes your short prompt and expands it into an ambitious product spec with features, user stories, design direction, and AI-powered features.
 
-2. **Building** — The generator agent reads the spec and builds the complete application — Next.js frontend + .NET backend — committing to git at milestones.
+2. **Building** — The generator agent reads the spec and builds the complete application in whatever stack the planner chose, committing to git at milestones.
 
 3. **QA** — The evaluator agent uses Playwright to interact with the running app like a real user. It grades against four criteria (Product Depth, Functionality, Visual Design, Code Quality) and files specific bugs with file/line references.
 
