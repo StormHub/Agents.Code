@@ -21,13 +21,13 @@ export interface AuthConfig {
 export interface HarnessConfig {
   auth: AuthConfig;
   model?: string;
-  maxQaRounds: number;
+  /** Per-step retry budget: max generator→evaluator iterations within a single step. */
+  maxStepFixRounds: number;
   maxBudgetUsd: number;
   outputDir: string;
   artifactsDir: string;
   /** Load settings from filesystem (user, project, local) */
   settingSources: Array<"user" | "project" | "local">;
-  planOnly?: boolean;
   debug?: boolean;
 }
 
@@ -74,12 +74,11 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
   return {
     auth,
     model: overrides.model ?? process.env.MODEL,
-    maxQaRounds: overrides.maxQaRounds ?? parseInt(process.env.MAX_QA_ROUNDS ?? "3", 10),
+    maxStepFixRounds: overrides.maxStepFixRounds ?? parseInt(process.env.MAX_STEP_FIX_ROUNDS ?? "3", 10),
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
     outputDir: overrides.outputDir ?? "./output",
     artifactsDir: resolve(overrides.outputDir ?? "./output", "artifacts"),
     debug: overrides.debug ?? false,
-    planOnly: overrides.planOnly ?? false,
     settingSources: overrides.settingSources ?? ["user", "project", "local"],
   };
 }

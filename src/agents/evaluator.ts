@@ -4,42 +4,56 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
 import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
-import { ARTIFACT_FILES } from "../artifacts/types.js";
 import { consumeStream } from "../utils/stream.js";
+import {
+  type Step,
+  stepBuildStatusPath,
+  stepContractPath,
+  stepDir,
+  stepFeedbackPath,
+} from "../artifacts/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/evaluator.md");
 
-export async function runEvaluator(
+export async function runStepEvaluator(
+  step: Step,
+  attempt: number,
   config: HarnessConfig,
-  round: number,
   log: Logger,
 ): Promise<boolean> {
-  const basePrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const systemPrompt = basePrompt;
+  const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
   const artifactsDir = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
-  log.agent(`Starting evaluator agent (round ${round})`, { model: config.model });
+  const folder = stepDir(artifactsDir, step);
+  const contractPath = stepContractPath(artifactsDir, step);
+  const buildStatusPath = stepBuildStatusPath(artifactsDir, step);
+  const feedbackPath = stepFeedbackPath(artifactsDir, step);
+
+  log.agent(
+    `Starting step evaluator — step ${step.index} (${step.slug}), round ${attempt}`,
+    { model: config.model },
+  );
 
   const prompt = `
-This is QA round ${round}.
+You are evaluating **step ${step.index}: ${step.title}** (round ${attempt}).
 
-Artifacts directory: ${artifactsDir}
-Application directory: ${outputDir}
+Inputs:
+  - Contract (the agreed definition of done): ${contractPath}
+  - Build status (what the generator claims): ${buildStatusPath}
+${attempt > 1 ? `  - Prior feedback file at the same path you'll overwrite: ${feedbackPath} — check whether the prior round's issues were actually fixed.` : ""}
 
-1. Read the spec from: ${artifactsDir}/${ARTIFACT_FILES.SPEC}
-2. Read the build status from: ${artifactsDir}/${ARTIFACT_FILES.BUILD_STATUS}
-3. Start both the frontend and backend applications
-4. Test every feature against the spec 
-5. Grade each criterion and write feedback to: ${artifactsDir}/${ARTIFACT_FILES.QA_FEEDBACK}
+Application directory (cwd, run the app here): ${outputDir}
+Step folder: ${folder}
 
-Be rigorous. Be specific. Do not be generous.
+Write your verdict to: ${feedbackPath}
 
-IMPORTANT: At the very end of your feedback file, include a line that says exactly:
+The very last line of feedback.md MUST be exactly one of:
   OVERALL_RESULT: PASS
-or
   OVERALL_RESULT: FAIL
+
+Be rigorous. Be specific. Verify every acceptance criterion yourself — do not trust the build-status claims.
 `.trim();
 
   const stream = query({
@@ -51,7 +65,7 @@ or
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.1,
+      maxBudgetUsd: config.maxBudgetUsd * 0.05,
       settingSources: config.settingSources,
       mcpServers: {
         playwright: {
@@ -59,26 +73,26 @@ or
           command: "npx",
           args: ["@playwright/mcp@latest"],
         },
-      },      
+      },
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
       debug: config.debug,
     },
   });
 
-  await consumeStream(stream as AsyncIterable<Record<string, unknown>>, `Evaluator (round ${round})`, log);
+  await consumeStream(
+    stream as AsyncIterable<Record<string, unknown>>,
+    `Step ${step.index} evaluator (round ${attempt})`,
+    log,
+  );
 
-  log.info(`Evaluator agent completed (round ${round})`);
+  log.info(`Step evaluator completed for step ${step.index} (round ${attempt})`);
 
-  // Parse the QA feedback to determine pass/fail
   try {
-    const feedback = readFileSync(
-      resolve(artifactsDir, ARTIFACT_FILES.QA_FEEDBACK),
-      "utf-8"
-    );
+    const feedback = readFileSync(feedbackPath, "utf-8");
     return feedback.includes("OVERALL_RESULT: PASS");
   } catch {
-    log.warn("Could not read QA feedback file — treating as FAIL");
+    log.warn("Could not read step feedback file — treating as FAIL");
     return false;
   }
 }
