@@ -18,10 +18,17 @@ let logFilePath: string | null = null;
 export class Logger {
   constructor(private context: string) {}
 
-  /** Set the file path for logging. Initializes the file with a header. */
+  /** Set the file path for logging. Initializes the file with a header.
+   * A timestamp is inserted before the extension to ensure the path is unique. */
   static setLogFile(path: string) {
-    logFilePath = path;
-    writeFileSync(path, `# Harness run log — ${new Date().toISOString()}\n\n`, "utf-8");
+    const ts = new Date().toISOString().replace(/[:.]/g, "-");
+    const dotIndex = path.lastIndexOf(".");
+    const timestampedPath =
+      dotIndex !== -1
+        ? `${path.slice(0, dotIndex)}.${ts}${path.slice(dotIndex)}`
+        : `${path}.${ts}`;
+    logFilePath = timestampedPath;
+    writeFileSync(timestampedPath, `# Harness run log — ${new Date().toISOString()}\n\n`, "utf-8");
   }
 
   private log(level: LogLevel, message: string, data?: Record<string, unknown>) {
