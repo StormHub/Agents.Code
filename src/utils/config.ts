@@ -74,7 +74,7 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
   return {
     auth,
     model: overrides.model ?? process.env.MODEL,
-    maxStepFixRounds: overrides.maxStepFixRounds ?? parseInt(process.env.MAX_STEP_FIX_ROUNDS ?? "3", 10),
+    maxStepFixRounds: overrides.maxStepFixRounds ?? parseInt(process.env.MAX_STEP_FIX_ROUNDS ?? "10", 10),
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
     outputDir: overrides.outputDir ?? "./output",
     artifactsDir: resolve(overrides.outputDir ?? "./output", "artifacts"),
