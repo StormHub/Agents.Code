@@ -19,6 +19,9 @@
  * Index is inferred from position (1-indexed). Slug is derived from the title
  * by lowercasing and replacing non-alphanumeric runs with hyphens.
  * The word "Step" may be followed by `:`, `-`, `—`, or just whitespace.
+ * A leading step number in the title (e.g. `### Step 1: Frontend Setup`) is
+ * stripped so the slug becomes `01-frontend-setup`, not `01-1-frontend-setup` —
+ * the auto-assigned positional index wins.
  * Steps may use level-2 (`## Step ...`) or level-3 (`### Step ...`) headings.
  */
 
@@ -71,7 +74,7 @@ export function parseRequirements(markdown: string): Step[] {
     const blockEnd = s + 1 < stepHeadings.length ? stepHeadings[s + 1]!.line : planEnd;
 
     const index = s + 1;
-    const title = match[1]!.trim();
+    const title = stripLeadingStepNumber(match[1]!.trim());
     const slug = slugify(title);
 
     if (!slug) {
@@ -146,6 +149,10 @@ export function parseRequirements(markdown: string): Step[] {
   }
 
   return steps;
+}
+
+function stripLeadingStepNumber(title: string): string {
+  return title.replace(/^\d+\s*[:.\-—–]?\s*/, "").trim();
 }
 
 function slugify(title: string): string {
