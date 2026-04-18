@@ -1,5 +1,5 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { readFileSync } from "fs";
+import { readFileSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
@@ -11,6 +11,7 @@ import {
   stepContractPath,
   stepDir,
   stepFeedbackPath,
+  stepMcpDir,
 } from "../artifacts/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -30,6 +31,9 @@ export async function runStepEvaluator(
   const contractPath = stepContractPath(artifactsDir, step);
   const buildStatusPath = stepBuildStatusPath(artifactsDir, step);
   const feedbackPath = stepFeedbackPath(artifactsDir, step);
+
+  const mcpDir = stepMcpDir(artifactsDir, step, "evaluator", attempt);
+  mkdirSync(mcpDir, { recursive: true });
 
   log.agent(
     `Starting step evaluator — step ${step.index} (${step.slug}), round ${attempt}`,
@@ -71,7 +75,7 @@ Be rigorous. Be specific. Verify every acceptance criterion yourself — do not 
         playwright: {
           type: "stdio",
           command: "npx",
-          args: ["@playwright/mcp@latest"],
+          args: ["@playwright/mcp@latest", "--output-dir", mcpDir],
         },
       },
       env: buildAgentEnv(config.auth),

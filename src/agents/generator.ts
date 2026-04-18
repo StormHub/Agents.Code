@@ -1,5 +1,5 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { readFileSync, existsSync } from "fs";
+import { readFileSync, existsSync, mkdirSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
@@ -11,6 +11,7 @@ import {
   stepContractPath,
   stepDir,
   stepFeedbackPath,
+  stepMcpDir,
 } from "../artifacts/types.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -32,6 +33,9 @@ export async function runStepGenerator(
   const buildStatusPath = stepBuildStatusPath(artifactsDir, step);
 
   const isRetry = attempt > 1 && existsSync(feedbackPath);
+
+  const mcpDir = stepMcpDir(artifactsDir, step, "generator", attempt);
+  mkdirSync(mcpDir, { recursive: true });
 
   log.agent(
     `Starting step generator — step ${step.index} (${step.slug}), attempt ${attempt}`,
@@ -76,7 +80,7 @@ ${isRetry ? "Focus the work on what the evaluator flagged. Do not regress prior 
         playwright: {
           type: "stdio",
           command: "npx",
-          args: ["@playwright/mcp@latest"],
+          args: ["@playwright/mcp@latest", "--output-dir", mcpDir],
         },
       },
       env: buildAgentEnv(config.auth),

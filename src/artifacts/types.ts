@@ -58,3 +58,14 @@ export function stepBuildStatusPath(artifactsDir: string, step: Pick<Step, "inde
 export function stepFeedbackPath(artifactsDir: string, step: Pick<Step, "index" | "slug">): string {
   return resolve(stepDir(artifactsDir, step), STEP_FILES.FEEDBACK);
 }
+
+/** Per-(step, agent, attempt) folder for MCP side artifacts (screenshots, traces). */
+export function stepMcpDir(
+  artifactsDir: string,
+  step: Pick<Step, "index" | "slug">,
+  agent: "generator" | "evaluator",
+  attempt: number,
+): string {
+  const label = agent === "generator" ? `generator-attempt-${attempt}` : `evaluator-round-${attempt}`;
+  return resolve(stepDir(artifactsDir, step), "mcp", label);
+}

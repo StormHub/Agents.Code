@@ -95,7 +95,10 @@ Everything the harness produces lives under `--output-dir`:
 │       └── 01-project-setup/
 │           ├── contract.md         # planner's definition of done
 │           ├── build-status.md     # generator's report
-│           └── feedback.md         # evaluator's verdict (PASS/FAIL)
+│           ├── feedback.md         # evaluator's verdict (PASS/FAIL)
+│           └── mcp/                # Playwright MCP artifacts (screenshots, traces)
+│               ├── generator-attempt-1/
+│               └── evaluator-round-1/
 └── <your application code>         # built here, committed to git by the generator
 ```
 
