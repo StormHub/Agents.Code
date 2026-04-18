@@ -26,6 +26,9 @@ export interface HarnessConfig {
   maxBudgetUsd: number;
   outputDir: string;
   artifactsDir: string;
+  /** Per-feature bucket under artifactsDir (e.g. `<artifactsDir>/feature-backend-api`).
+   * Contains spec.md, steps.json, and all per-step folders. */
+  bucketDir: string;
   /** Load settings from filesystem (user, project, local) */
   settingSources: Array<"user" | "project" | "local">;
   debug?: boolean;
@@ -57,7 +60,9 @@ export function buildAgentEnv(auth: AuthConfig): Record<string, string> {
   return env;
 }
 
-export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfig {
+export function loadConfig(
+  overrides: Partial<HarnessConfig> & { bucketDir: string },
+): HarnessConfig {
   const auth: AuthConfig = {
     apiKey: (overrides.auth?.apiKey) ?? process.env.ANTHROPIC_API_KEY,
     authToken: (overrides.auth?.authToken) ?? process.env.ANTHROPIC_AUTH_TOKEN,
@@ -71,13 +76,16 @@ export function loadConfig(overrides: Partial<HarnessConfig> = {}): HarnessConfi
   // Auth is optional — if the user is signed into Claude Code locally,
   // the SDK subprocess inherits the existing session automatically.
 
+  const outputDir = overrides.outputDir ?? "./output";
+
   return {
     auth,
     model: overrides.model ?? process.env.MODEL,
     maxStepFixRounds: overrides.maxStepFixRounds ?? parseInt(process.env.MAX_STEP_FIX_ROUNDS ?? "10", 10),
     maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
-    outputDir: overrides.outputDir ?? "./output",
-    artifactsDir: resolve(overrides.outputDir ?? "./output", "artifacts"),
+    outputDir,
+    artifactsDir: overrides.artifactsDir ?? resolve(outputDir, "artifacts"),
+    bucketDir: overrides.bucketDir,
     debug: overrides.debug ?? false,
     settingSources: overrides.settingSources ?? ["user", "project", "local"],
   };

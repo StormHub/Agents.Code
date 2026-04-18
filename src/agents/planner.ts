@@ -6,7 +6,7 @@ import { Logger } from "../utils/logger.js";
 import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
 import { consumeStream } from "../utils/stream.js";
 import {
-  FEATURES_FILENAME,
+  specPath,
   type Step,
   stepContractPath,
   stepDir,
@@ -23,15 +23,15 @@ export async function runStepPlanner(
   log: Logger,
 ): Promise<void> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const artifactsDir = resolve(config.artifactsDir);
+  const bucketDir = resolve(config.bucketDir);
   const outputDir = resolve(config.outputDir);
 
-  const requirementsPath = resolve(outputDir, FEATURES_FILENAME);
-  const folder = stepDir(artifactsDir, step);
-  const contractPath = stepContractPath(artifactsDir, step);
+  const requirementsPath = specPath(bucketDir);
+  const folder = stepDir(bucketDir, step);
+  const contractPath = stepContractPath(bucketDir, step);
 
   const priorBuildStatusList = priorSteps
-    .map((s) => `  - Step ${s.index} (${s.title}): ${stepBuildStatusPath(artifactsDir, s)}`)
+    .map((s) => `  - Step ${s.index} (${s.title}): ${stepBuildStatusPath(bucketDir, s)}`)
     .join("\n");
 
   log.agent(`Starting step planner — step ${step.index} (${step.slug})`, { model: config.model });
@@ -48,7 +48,7 @@ Step entry from steps.json:
 ${step.acceptanceCriteria.map((c) => `    - ${c}`).join("\n")}
 
 Inputs you should read:
-  - Product requirements: ${requirementsPath}
+  - Product spec: ${requirementsPath}
 ${priorSteps.length > 0 ? `  - Prior steps' build-status files (read these to ground your design in what already exists):\n${priorBuildStatusList}` : "  - This is the first step — no prior build-status files yet."}
 
 Application directory (cwd, read-only for you): ${outputDir}

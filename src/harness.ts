@@ -6,9 +6,9 @@ import { runStepPlanner } from "./agents/planner.js";
 import { runStepGenerator } from "./agents/generator.js";
 import { runStepEvaluator } from "./agents/evaluator.js";
 import {
-  ARTIFACT_FILES,
-  FEATURES_FILENAME,
   type StepsFile,
+  specPath,
+  stepsJsonPath,
   stepDir,
   stepFolderName,
 } from "./artifacts/types.js";
@@ -36,31 +36,31 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
 
   const artifactsDir = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
+  const bucketDir = resolve(config.bucketDir);
   mkdirSync(artifactsDir, { recursive: true });
   mkdirSync(outputDir, { recursive: true });
+  mkdirSync(bucketDir, { recursive: true });
 
-  const featuresPath = resolve(outputDir, FEATURES_FILENAME);
-  const stepsPath = resolve(artifactsDir, ARTIFACT_FILES.STEPS_JSON);
+  const featuresPath = specPath(bucketDir);
+  const stepsPath = stepsJsonPath(bucketDir);
 
   log.info("Starting step-by-step harness", {
     model: config.model,
     maxStepFixRounds: config.maxStepFixRounds,
     maxBudgetUsd: config.maxBudgetUsd,
     outputDir,
+    bucketDir,
   });
 
   // ── Preconditions ─────────────────────────────────────────────────
-  // runHarness is the executor only; it does not derive plans.
-  // Run `npx tsx src/index.ts plan <spec.md>` first to produce steps.json,
-  // review/edit it, then run the harness.
   if (!existsSync(stepsPath)) {
     throw new Error(
-      `${stepsPath} not found. Pass a features.md path to derive the step plan first, then re-run with \`run\`.`,
+      `${stepsPath} not found. Pass a spec.md path so the harness can derive the step plan.`,
     );
   }
   if (!existsSync(featuresPath)) {
     throw new Error(
-      `${featuresPath} not found. The harness expects features.md at the project root.`,
+      `${featuresPath} not found. The harness expects spec.md inside the feature bucket.`,
     );
   }
 
@@ -77,7 +77,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     }
 
     const priorSteps = stepsFile.steps.slice(0, i);
-    const stepFolder = stepDir(artifactsDir, step);
+    const stepFolder = stepDir(bucketDir, step);
     mkdirSync(stepFolder, { recursive: true });
 
     const stepLog = log.child(`step-${stepFolderName(step)}`);
@@ -147,6 +147,6 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
   } else {
     log.warn(`\n⚠️  Harness halted in ${totalDuration} min`);
     log.warn(`   ${passing}/${finalSteps.length} steps passing, ${failed} failed, ${remaining} not yet attempted`);
-    log.warn(`   Re-run with the same outputDir to resume from the first non-passing step.`);
+    log.warn(`   Re-run with the same spec path to resume from the first non-passing step.`);
   }
 }

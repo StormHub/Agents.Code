@@ -22,13 +22,11 @@ export interface StepsFile {
   steps: Step[];
 }
 
-/** User-editable requirements file, lives at outputDir root (not in artifacts/). */
-export const FEATURES_FILENAME = "features.md";
+/** The user-authored spec markdown, stored inside the feature bucket. */
+export const SPEC_FILENAME = "spec.md";
 
-/** Top-level artifact files (relative to artifactsDir). */
-export const ARTIFACT_FILES = {
-  STEPS_JSON: "steps.json",
-} as const;
+/** The derived step plan, stored inside the feature bucket. */
+export const STEPS_JSON_FILENAME = "steps.json";
 
 /** Per-step artifact filenames (relative to a step's folder). */
 export const STEP_FILES = {
@@ -37,35 +35,45 @@ export const STEP_FILES = {
   FEEDBACK: "feedback.md",
 } as const;
 
+/** Path to the spec file inside a feature bucket. */
+export function specPath(bucketDir: string): string {
+  return resolve(bucketDir, SPEC_FILENAME);
+}
+
+/** Path to steps.json inside a feature bucket. */
+export function stepsJsonPath(bucketDir: string): string {
+  return resolve(bucketDir, STEPS_JSON_FILENAME);
+}
+
 /** Build the canonical folder name for a step (e.g. "01-project-setup"). */
 export function stepFolderName(step: Pick<Step, "index" | "slug">): string {
   return `${String(step.index).padStart(2, "0")}-${step.slug}`;
 }
 
-/** Absolute path to a step's folder under artifacts/steps/. */
-export function stepDir(artifactsDir: string, step: Pick<Step, "index" | "slug">): string {
-  return resolve(artifactsDir, "steps", stepFolderName(step));
+/** Absolute path to a step's folder under the feature bucket. */
+export function stepDir(bucketDir: string, step: Pick<Step, "index" | "slug">): string {
+  return resolve(bucketDir, stepFolderName(step));
 }
 
-export function stepContractPath(artifactsDir: string, step: Pick<Step, "index" | "slug">): string {
-  return resolve(stepDir(artifactsDir, step), STEP_FILES.CONTRACT);
+export function stepContractPath(bucketDir: string, step: Pick<Step, "index" | "slug">): string {
+  return resolve(stepDir(bucketDir, step), STEP_FILES.CONTRACT);
 }
 
-export function stepBuildStatusPath(artifactsDir: string, step: Pick<Step, "index" | "slug">): string {
-  return resolve(stepDir(artifactsDir, step), STEP_FILES.BUILD_STATUS);
+export function stepBuildStatusPath(bucketDir: string, step: Pick<Step, "index" | "slug">): string {
+  return resolve(stepDir(bucketDir, step), STEP_FILES.BUILD_STATUS);
 }
 
-export function stepFeedbackPath(artifactsDir: string, step: Pick<Step, "index" | "slug">): string {
-  return resolve(stepDir(artifactsDir, step), STEP_FILES.FEEDBACK);
+export function stepFeedbackPath(bucketDir: string, step: Pick<Step, "index" | "slug">): string {
+  return resolve(stepDir(bucketDir, step), STEP_FILES.FEEDBACK);
 }
 
 /** Per-(step, agent, attempt) folder for MCP side artifacts (screenshots, traces). */
 export function stepMcpDir(
-  artifactsDir: string,
+  bucketDir: string,
   step: Pick<Step, "index" | "slug">,
   agent: "generator" | "evaluator",
   attempt: number,
 ): string {
   const label = agent === "generator" ? `generator-attempt-${attempt}` : `evaluator-round-${attempt}`;
-  return resolve(stepDir(artifactsDir, step), "mcp", label);
+  return resolve(stepDir(bucketDir, step), "mcp", label);
 }

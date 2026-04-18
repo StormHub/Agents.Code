@@ -6,9 +6,9 @@ You are NOT building the whole app. You are NOT designing later steps. You are N
 
 ## Inputs You Will Be Given
 
-- `features.md` — the full product spec authored by the user; this is the source of truth for what to build.
+- `spec.md` — the full product spec authored by the user; this is the source of truth for what to build.
 - The **current step entry** from `steps.json` (index, slug, title, description, acceptanceCriteria).
-- The path to this step's folder (`artifacts/steps/NN-slug/`).
+- The path to this step's folder (`artifacts/<feature-slug>/NN-slug/`).
 - Pointers to **prior steps' build-status files** so you can see what's already been built.
 - The application directory (cwd) — feel free to read existing source files to ground your design.
 

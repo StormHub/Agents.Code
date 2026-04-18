@@ -24,15 +24,15 @@ export async function runStepEvaluator(
   log: Logger,
 ): Promise<boolean> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const artifactsDir = resolve(config.artifactsDir);
+  const bucketDir = resolve(config.bucketDir);
   const outputDir = resolve(config.outputDir);
 
-  const folder = stepDir(artifactsDir, step);
-  const contractPath = stepContractPath(artifactsDir, step);
-  const buildStatusPath = stepBuildStatusPath(artifactsDir, step);
-  const feedbackPath = stepFeedbackPath(artifactsDir, step);
+  const folder = stepDir(bucketDir, step);
+  const contractPath = stepContractPath(bucketDir, step);
+  const buildStatusPath = stepBuildStatusPath(bucketDir, step);
+  const feedbackPath = stepFeedbackPath(bucketDir, step);
 
-  const mcpDir = stepMcpDir(artifactsDir, step, "evaluator", attempt);
+  const mcpDir = stepMcpDir(bucketDir, step, "evaluator", attempt);
   mkdirSync(mcpDir, { recursive: true });
 
   log.agent(

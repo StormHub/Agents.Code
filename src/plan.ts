@@ -2,11 +2,11 @@ import { mkdirSync, existsSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { Logger } from "./utils/logger.js";
 import type { HarnessConfig } from "./utils/config.js";
-import { ARTIFACT_FILES } from "./artifacts/types.js";
+import { stepsJsonPath } from "./artifacts/types.js";
 import { parseRequirements, RequirementsParseError } from "./utils/requirements-parser.js";
 
 export interface DerivePlanOptions {
-  /** Full markdown contents of the user-authored features.md. */
+  /** Full markdown contents of the user-authored spec.md. */
   featuresMarkdown: string;
   config: HarnessConfig;
   log: Logger;
@@ -15,8 +15,8 @@ export interface DerivePlanOptions {
 }
 
 /**
- * Deterministic: parse features.md → write artifacts/steps.json. No agents.
- * Run this whenever you want to refresh the step plan from an updated features.md.
+ * Deterministic: parse spec.md → write <bucketDir>/steps.json. No agents.
+ * Run this whenever you want to refresh the step plan from an updated spec.md.
  */
 export function derivePlan({
   featuresMarkdown,
@@ -24,10 +24,10 @@ export function derivePlan({
   log,
   force = false,
 }: DerivePlanOptions): void {
-  const artifactsDir = resolve(config.artifactsDir);
-  mkdirSync(artifactsDir, { recursive: true });
+  const bucketDir = resolve(config.bucketDir);
+  mkdirSync(bucketDir, { recursive: true });
 
-  const stepsPath = resolve(artifactsDir, ARTIFACT_FILES.STEPS_JSON);
+  const stepsPath = stepsJsonPath(bucketDir);
 
   if (existsSync(stepsPath) && !force) {
     throw new Error(
@@ -40,12 +40,11 @@ export function derivePlan({
     steps = parseRequirements(featuresMarkdown);
   } catch (err) {
     if (err instanceof RequirementsParseError) {
-      throw new Error(`Failed to parse features.md: ${err.message}`);
+      throw new Error(`Failed to parse spec.md: ${err.message}`);
     }
     throw err;
   }
 
   writeFileSync(stepsPath, JSON.stringify({ steps }, null, 2) + "\n", "utf-8");
   log.info(`Derived ${steps.length} steps → ${stepsPath}`);
-  log.info(`Review/edit ${stepsPath} before running the harness.`);
 }

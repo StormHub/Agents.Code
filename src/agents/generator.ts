@@ -24,17 +24,17 @@ export async function runStepGenerator(
   log: Logger,
 ): Promise<void> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const artifactsDir = resolve(config.artifactsDir);
+  const bucketDir = resolve(config.bucketDir);
   const outputDir = resolve(config.outputDir);
 
-  const folder = stepDir(artifactsDir, step);
-  const contractPath = stepContractPath(artifactsDir, step);
-  const feedbackPath = stepFeedbackPath(artifactsDir, step);
-  const buildStatusPath = stepBuildStatusPath(artifactsDir, step);
+  const folder = stepDir(bucketDir, step);
+  const contractPath = stepContractPath(bucketDir, step);
+  const feedbackPath = stepFeedbackPath(bucketDir, step);
+  const buildStatusPath = stepBuildStatusPath(bucketDir, step);
 
   const isRetry = attempt > 1 && existsSync(feedbackPath);
 
-  const mcpDir = stepMcpDir(artifactsDir, step, "generator", attempt);
+  const mcpDir = stepMcpDir(bucketDir, step, "generator", attempt);
   mkdirSync(mcpDir, { recursive: true });
 
   log.agent(
