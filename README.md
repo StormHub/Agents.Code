@@ -1,6 +1,7 @@
 # Agents.Code — Step-by-Step Autonomous Coding Harness
 
 An autonomous coding harness built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes a short prompt, scaffolds a feature spec you can edit, derives an ordered step plan, then builds the application one step at a time with a planner → generator → evaluator loop per step. The harness itself is stack-agnostic — the tech stack is chosen in `features.md`.
+- More details are in [my blog](https://stormhub.github.io/stormhub/blog/2026-04-11-Agent-Coding-Harness/).
 
 ## Architecture
 
