@@ -29,7 +29,7 @@ import type { Step } from "../artifacts/types.js";
 
 const PLAN_HEADING = /^##\s+Implementation\s+Plan\s*$/im;
 const STEP_HEADING = /^#{2,3}\s+Step\s*[:—–-]?\s*(.+?)\s*$/i;
-const ACCEPTANCE_MARKER = /^\*\*Acceptance\s+Criteria:?\*\*\s*$/i;
+const ACCEPTANCE_MARKER = /^\*\*Acceptance(?:\s+Criteria)?:\*\*\s*$/i;
 const NEXT_TOP_LEVEL = /^##\s+/;
 const BULLET = /^\s*[-*]\s+(.+?)\s*$/;
 
