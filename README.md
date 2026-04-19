@@ -1,9 +1,9 @@
-# Agents.Code — Step-by-Step Autonomous Coding Harness
+# Agents.Code — Step-by-Step Autonomous Agent Coding
 
 An autonomous coding harness built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes a short prompt, scaffolds a feature spec you can edit, derives an ordered step plan, then builds the application one step at a time with a planner → generator → evaluator loop per step. The harness itself is stack-agnostic — the tech stack is chosen in `spec.md`.
-- More details are in [my blog](https://stormhub.github.io/stormhub/blog/2026-04-11-Agent-Coding-Harness/).
+- More details about how and why are in my [blog](https://stormhub.github.io/stormhub/blog/2026-04-11-Agent-Coding-Harness/).
 
-## Architecture
+## Structure
 
 ```
 (a) short prompt ──[Initializer]──▶ artifacts/<slug>/spec.md   (you edit)
@@ -36,12 +36,12 @@ npx playwright install chromium
 # Writes to ./kanban/artifacts/<auto-slug>/spec.md
 npx tsx src/index.ts "Build a task management app with kanban boards" --output-dir ./kanban
 
-# ... edit ./kanban/artifacts/<auto-slug>/spec.md by hand ...
+# ... Review ./kanban/artifacts/<auto-slug>/spec.md ...
+# The default scaffold md generated has some (reviewer: confirm) tags, it is recommended to use some skills
+# such as https://github.com/mattpocock/skills/blob/main/grill-me/SKILL.md to interactively refine the spec
 
-# (b) Build from the spec. steps.json is derived on first run, then reused on resume.
-npx tsx src/index.ts ./kanban/artifacts/<auto-slug>/spec.md
-
-# ... edit steps.json alongside spec.md if needed, then re-run the same command ...
+# (b) Build from the spec.md, steps.json is derived on first run, then reused on resume.
+npx tsx src/index.ts ./kanban/artifacts/<auto-slug>
 ```
 
 ### Configuration via `.env`
