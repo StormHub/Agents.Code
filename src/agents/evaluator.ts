@@ -1,5 +1,5 @@
 import { query } from "@anthropic-ai/claude-agent-sdk";
-import { readFileSync, mkdirSync } from "fs";
+import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { Logger } from "../utils/logger.js";
@@ -33,7 +33,6 @@ export async function runStepEvaluator(
   const feedbackPath = stepFeedbackPath(bucketDir, step);
 
   const mcpDir = stepMcpDir(bucketDir, step, "evaluator", attempt);
-  mkdirSync(mcpDir, { recursive: true });
 
   log.agent(
     `Starting step evaluator — step ${step.index} (${step.slug}), round ${attempt}`,
