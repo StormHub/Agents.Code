@@ -1,11 +1,12 @@
 {
   "name": "agents-code",
   "version": "1.0.0",
-  "description": "Autonomous agent coding harness using Claude Agent SDK",
+  "description": "Autonomous agent coding using Claude Agent SDK",
   "type": "module",
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
+    "typecheck": "tsc --noEmit",
     "start": "tsx src/index.ts",
     "dev": "tsx watch src/index.ts"
   },
