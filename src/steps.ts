@@ -5,7 +5,7 @@ import type { HarnessConfig } from "./utils/config.js";
 import { stepsJsonPath } from "./artifacts/types.js";
 import { parseRequirements, RequirementsParseError } from "./utils/requirements-parser.js";
 
-export interface DerivePlanOptions {
+interface DeriveOptions {
   /** Full markdown contents of the user-authored spec.md. */
   featuresMarkdown: string;
   config: HarnessConfig;
@@ -18,12 +18,12 @@ export interface DerivePlanOptions {
  * Deterministic: parse spec.md → write <bucketDir>/steps.json. No agents.
  * Run this whenever you want to refresh the step plan from an updated spec.md.
  */
-export function derivePlan({
+export function deriveSteps({
   featuresMarkdown,
   config,
   log,
   force = false,
-}: DerivePlanOptions): void {
+}: DeriveOptions): void {
   const bucketDir = resolve(config.bucketDir);
   mkdirSync(bucketDir, { recursive: true });
 

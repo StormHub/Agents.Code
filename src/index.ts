@@ -5,7 +5,7 @@ import { resolve, dirname, isAbsolute, basename } from "path";
 import { loadConfig } from "./utils/config.js";
 import { Logger, logger } from "./utils/logger.js";
 import { runHarness } from "./harness.js";
-import { derivePlan } from "./plan.js";
+import { deriveSteps } from "./steps.js";
 import { runInitializer } from "./agents/initializer.js";
 import { specPath, stepsJsonPath } from "./artifacts/types.js";
 
@@ -197,7 +197,7 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
   const needsDerivation = !existsSync(stepsPath) || args.bools.has("force");
   if (needsDerivation) {
     logger.info(`Deriving plan from ${resolvedSpec}`);
-    derivePlan({
+    deriveSteps({
       featuresMarkdown: specMarkdown,
       config,
       log: logger.child("plan"),
