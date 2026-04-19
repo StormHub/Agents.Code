@@ -77,7 +77,7 @@ Follow your system prompt. Do not write application code.
   });
 
   await consumeStream(
-    stream as AsyncIterable<Record<string, unknown>>,
+    stream,
     `Step ${step.index} planner`,
     log,
   );

@@ -1,3 +1,4 @@
+import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { Logger } from "./logger.js";
 
 /**
@@ -9,28 +10,25 @@ import type { Logger } from "./logger.js";
  * rather than propagated as a fatal error.
  */
 export async function consumeStream(
-  stream: AsyncIterable<Record<string, unknown>>,
+  stream: AsyncIterable<SDKMessage>,
   agentName: string,
   log: Logger
-): Promise<Record<string, unknown> | undefined> {
-  let lastResult: Record<string, unknown> | undefined;
+): Promise<SDKMessage | undefined> {
+  let lastResult: SDKMessage | undefined;
   let succeeded = false;
 
   try {
     for await (const message of stream) {
-      const type = message.type as string;
-
-      switch (type) {
+      switch (message.type) {
         case "assistant": {
-          const msg = message.message as { content?: Array<{ type: string; text?: string }> } | undefined;
-          const error = message.error as string | undefined;
-          if (error) {
-            log.error(`${agentName} assistant error: ${error}`);
+          if (message.error) {
+            log.error(`${agentName} [${message.session_id}] assistant error: ${message.error}`);
           }
-          if (msg?.content) {
-            for (const block of msg.content) {
+          
+          if (message.message?.content) {
+            for (const block of message.message.content) {
               if (block.type === "text" && block.text?.trim()) {
-                log.agent(block.text);
+                log.agent(`${agentName} [${message.session_id}] ${block.text}`);
               }
             }
           }
@@ -39,17 +37,15 @@ export async function consumeStream(
 
         case "result": {
           lastResult = message;
-          const subtype = message.subtype as string;
-          const isError = message.is_error as boolean;
-          const cost = message.total_cost_usd as number | undefined;
-          const turns = message.num_turns as number | undefined;
+          const { subtype, is_error, total_cost_usd, num_turns } = message;
 
-          if (isError || subtype !== "success") {
-            const errors = message.errors as string[] | undefined;
-            log.error(`${agentName} result: ${subtype}`, {
-              is_error: isError,
-              num_turns: turns,
-              cost_usd: cost,
+          message.session_id
+          if (is_error || subtype !== "success") {
+            const errors = message.subtype !== "success" ? message.errors : undefined;
+            log.error(`${agentName} [${message.session_id}] result: ${subtype}`, {
+              is_error,
+              num_turns,
+              cost_usd: total_cost_usd,
               errors: errors?.length ? errors : undefined,
             });
             if (errors?.length) {
@@ -59,18 +55,17 @@ export async function consumeStream(
             }
           } else {
             succeeded = true;
-            log.info(`${agentName} result: ${subtype}`, {
-              num_turns: turns,
-              cost_usd: cost,
+            log.info(`${agentName} [${message.session_id}] result: ${subtype}`, {
+              num_turns,
+              cost_usd: total_cost_usd,
             });
           }
           break;
         }
 
         case "system": {
-          const subtype = message.subtype as string;
-          if (subtype === "init") {
-            log.info(`${agentName} session init`, {
+          if (message.subtype === "init") {
+            log.info(`${agentName} [${message.session_id}] session init`, {
               model: message.model,
               tools: message.tools,
               skills: message.skills,
@@ -80,9 +75,8 @@ export async function consumeStream(
         }
 
         case "auth_status": {
-          const error = message.error as string | undefined;
-          if (error) {
-            log.error(`${agentName} auth error: ${error}`);
+          if (message.error) {
+            log.error(`${agentName} [${message.session_id}] auth error: ${message.error}`);
           }
           break;
         }

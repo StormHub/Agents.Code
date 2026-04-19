@@ -54,7 +54,7 @@ Do NOT initialize a repo, install dependencies, or write any application code.
     },
   });
 
-  await consumeStream(stream as AsyncIterable<Record<string, unknown>>, "Initializer", log);
+  await consumeStream(stream, "Initializer", log);
 
   log.info(`Initializer completed → ${featuresPath}`);
 }

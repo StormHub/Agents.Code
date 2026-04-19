@@ -89,7 +89,7 @@ ${isRetry ? "Focus the work on what the evaluator flagged. Do not regress prior 
   });
 
   await consumeStream(
-    stream as AsyncIterable<Record<string, unknown>>,
+    stream,
     `Step ${step.index} generator (attempt ${attempt})`,
     log,
   );

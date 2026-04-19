@@ -84,7 +84,7 @@ Be rigorous. Be specific. Verify every acceptance criterion yourself — do not 
   });
 
   await consumeStream(
-    stream as AsyncIterable<Record<string, unknown>>,
+    stream,
     `Step ${step.index} evaluator (round ${attempt})`,
     log,
   );
