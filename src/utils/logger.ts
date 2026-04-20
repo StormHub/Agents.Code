@@ -34,7 +34,7 @@ export class Logger {
   private log(level: LogLevel, message: string, data?: Record<string, unknown>) {
     const timestamp = new Date().toISOString().slice(11, 19);
     const color = COLORS[level];
-    const suffix = data ? ` ${JSON.stringify(data)}` : "";
+    const suffix = data ? ` ${JSON.stringify(data, null, 2)}` : "";
 
     // Console output (with color, truncated)
     const displayMsg = message.length > 200 ? message.slice(0, 200) + "..." : message;
