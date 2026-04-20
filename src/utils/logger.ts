@@ -13,22 +13,33 @@ const COLORS: Record<LogLevel, string> = {
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 
-let logFilePath: string | null = null;
+/** Insert a timestamp before the file extension to make the path unique. */
+function timestampPath(path: string): string {
+  const ts = new Date().toISOString().replace(/[:.]/g, "-");
+  const dotIndex = path.lastIndexOf(".");
+  return dotIndex !== -1
+    ? `${path.slice(0, dotIndex)}.${ts}${path.slice(dotIndex)}`
+    : `${path}.${ts}`;
+}
 
 export class Logger {
-  constructor(private context: string) {}
+  private readonly resolvedLogFilePath: string;
 
-  /** Set the file path for logging. Initializes the file with a header.
-   * A timestamp is inserted before the extension to ensure the path is unique. */
-  static setLogFile(path: string) {
-    const ts = new Date().toISOString().replace(/[:.]/g, "-");
-    const dotIndex = path.lastIndexOf(".");
-    const timestampedPath =
-      dotIndex !== -1
-        ? `${path.slice(0, dotIndex)}.${ts}${path.slice(dotIndex)}`
-        : `${path}.${ts}`;
-    logFilePath = timestampedPath;
-    writeFileSync(timestampedPath, `# Harness run log — ${new Date().toISOString()}\n\n`, "utf-8");
+  /**
+   * @param context  Label that appears in log lines (e.g. "harness", "planner").
+   * @param logFilePath  Path to the log file. The file is created with a header
+   *   and a timestamp is inserted into the filename to ensure uniqueness.
+   */
+  constructor(
+    private context: string,
+    logFilePath: string,
+  ) {
+    this.resolvedLogFilePath = timestampPath(logFilePath);
+    writeFileSync(
+      this.resolvedLogFilePath,
+      `# Harness run log — ${new Date().toISOString()}\n\n`,
+      "utf-8",
+    );
   }
 
   private log(level: LogLevel, message: string, data?: Record<string, unknown>) {
@@ -44,10 +55,8 @@ export class Logger {
     console.log(`${prefix} ${displayMsg}${suffix}`);
 
     // File output (plain text, full message)
-    if (logFilePath) {
-      const plain = `[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message}${suffix}\n`;
-      appendFileSync(logFilePath, plain, "utf-8");
-    }
+    const plain = `[${timestamp}] [${level.toUpperCase()}] [${this.context}] ${message}${suffix}\n`;
+    appendFileSync(this.resolvedLogFilePath, plain, "utf-8");
   }
 
   info(message: string, data?: Record<string, unknown>) { this.log("info", message, data); }
@@ -56,10 +65,4 @@ export class Logger {
   debug(message: string, data?: Record<string, unknown>) { this.log("debug", message, data); }
   agent(message: string, data?: Record<string, unknown>) { this.log("agent", message, data); }
   stderr(message: string) { this.log("stderr", message); }
-
-  child(context: string): Logger {
-    return new Logger(`${this.context}:${context}`);
-  }
 }
-
-export const logger = new Logger("harness");

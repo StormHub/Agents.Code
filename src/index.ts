@@ -3,7 +3,7 @@
 import { existsSync, readFileSync, mkdirSync, statSync } from "fs";
 import { resolve, dirname, isAbsolute, basename } from "path";
 import { loadConfig } from "./utils/config.js";
-import { Logger, logger } from "./utils/logger.js";
+import { Logger } from "./utils/logger.js";
 import { runHarness } from "./harness.js";
 import { deriveSteps } from "./steps.js";
 import { runInitializer } from "./agents/initializer.js";
@@ -83,13 +83,6 @@ function parseArgs(args: string[]): ParsedArgs {
   return { positional, flags, bools };
 }
 
-function setupLogging(artifactsDir: string, label: string): void {
-  mkdirSync(artifactsDir, { recursive: true });
-  const logFile = resolve(artifactsDir, "run.log.txt");
-  Logger.setLogFile(logFile);
-  logger.info(`${label} — logging to ${logFile}`);
-}
-
 /** Derive a filesystem-safe slug from a short prompt. */
 function slugifyPrompt(prompt: string): string {
   const slug = prompt
@@ -152,12 +145,13 @@ async function cmdScaffold(shortPrompt: string, args: ParsedArgs): Promise<void>
   }
 
   const config = loadConfig({ outputDir, bucketDir });
-  setupLogging(config.artifactsDir, "Scaffold");
+  mkdirSync(config.artifactsDir, { recursive: true });
 
-  logger.info(`Scaffolding feature bucket: ${slug}`);
-  await runInitializer(shortPrompt, featuresPath, config, logger.child("initializer"));
+  console.log(`Scaffolding feature bucket: ${slug}`);
+  const initializerLog = new Logger("initializer", resolve(config.artifactsDir, "initializer.log.txt"));
+  await runInitializer(shortPrompt, featuresPath, config, initializerLog);
 
-  logger.info(`Draft written to ${featuresPath}. Refine it, then re-invoke with the spec path to build.`);
+  console.log(`Draft written to ${featuresPath}. Refine it, then re-invoke with the spec path to build.`);
 }
 
 async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<void> {
@@ -191,20 +185,21 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
     debug: args.bools.has("debug"),
   });
 
-  setupLogging(config.artifactsDir, "Build");
+  mkdirSync(config.artifactsDir, { recursive: true });
 
   const stepsPath = stepsJsonPath(bucketDir);
   const needsDerivation = !existsSync(stepsPath) || args.bools.has("force");
   if (needsDerivation) {
-    logger.info(`Deriving plan from ${resolvedSpec}`);
+    console.log(`Deriving plan from ${resolvedSpec}`);
+    const planLog = new Logger("plan", resolve(config.artifactsDir, "plan.log.txt"));
     deriveSteps({
       featuresMarkdown: specMarkdown,
       config,
-      log: logger.child("plan"),
+      log: planLog,
       force: true,
     });
   } else {
-    logger.info(`Using existing plan: ${stepsPath}`);
+    console.log(`Using existing plan: ${stepsPath}`);
   }
 
   await runHarness({ config });

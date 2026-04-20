@@ -1,6 +1,6 @@
 import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
-import { logger } from "./utils/logger.js";
+import { Logger } from "./utils/logger.js";
 import type { HarnessConfig } from "./utils/config.js";
 import { runStepPlanner } from "./agents/planner.js";
 import { runStepGenerator } from "./agents/generator.js";
@@ -31,7 +31,6 @@ function saveSteps(stepsPath: string, file: StepsFile): void {
 }
 
 export async function runHarness({ config }: HarnessOptions): Promise<void> {
-  const log = logger.child("orchestrator");
   const startTime = Date.now();
 
   const artifactsDir = resolve(config.artifactsDir);
@@ -40,6 +39,8 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
   mkdirSync(artifactsDir, { recursive: true });
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(bucketDir, { recursive: true });
+
+  const log = new Logger("orchestrator", resolve(artifactsDir, "orchestrator.log.txt"));
 
   const featuresPath = specPath(bucketDir);
   const stepsPath = stepsJsonPath(bucketDir);
@@ -80,7 +81,9 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     const stepFolder = stepDir(bucketDir, step);
     mkdirSync(stepFolder, { recursive: true });
 
-    const stepLog = log.child(`step-${stepFolderName(step)}`);
+    // Per-step logger writes to its own log file
+    const stepLogFile = resolve(stepFolder, "step.log.txt");
+    const stepLog = new Logger(`orchestrator:step-${stepFolderName(step)}`, stepLogFile);
     stepLog.info(`═══ Step ${step.index}/${stepsFile.steps.length}: ${step.title} ═══`);
 
     // Mark in-progress and persist (so a kill mid-step is visible on resume)
@@ -92,7 +95,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     // Per-step planner (once per step)
     stepLog.info(`── Planner ──`);
     const planStart = Date.now();
-    await runStepPlanner(step, priorSteps, config, stepLog.child("planner"));
+    await runStepPlanner(step, priorSteps, config, stepLog);
     stepLog.info(`Planner completed in ${((Date.now() - planStart) / 1000 / 60).toFixed(1)} min`);
 
     // Generator → Evaluator loop, up to maxStepFixRounds attempts
@@ -100,12 +103,12 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     for (let attempt = 1; attempt <= config.maxStepFixRounds; attempt++) {
       stepLog.info(`── Generator (attempt ${attempt}/${config.maxStepFixRounds}) ──`);
       const genStart = Date.now();
-      await runStepGenerator(step, attempt, config, stepLog.child("generator"));
+      await runStepGenerator(step, attempt, config, stepLog);
       stepLog.info(`Generator attempt ${attempt} completed in ${((Date.now() - genStart) / 1000 / 60).toFixed(1)} min`);
 
       stepLog.info(`── Evaluator (round ${attempt}) ──`);
       const evalStart = Date.now();
-      passed = await runStepEvaluator(step, attempt, config, stepLog.child("evaluator"));
+      passed = await runStepEvaluator(step, attempt, config, stepLog);
       stepLog.info(`Evaluator round ${attempt} completed in ${((Date.now() - evalStart) / 1000 / 60).toFixed(1)} min`, { passed });
 
       if (passed) {
