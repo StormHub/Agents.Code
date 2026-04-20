@@ -38,7 +38,9 @@ export class Logger {
 
     // Console output (with color, truncated)
     const displayMsg = message.length > 200 ? message.slice(0, 200) + "..." : message;
-    const prefix = `${color}[${timestamp}]${RESET} ${BOLD}[${this.context}]${RESET}`;
+    
+    // const prefix = `${color}[${timestamp}]${RESET} ${BOLD}[${this.context}]${RESET}`;
+    const prefix = `${color}[${timestamp}]${RESET} ${BOLD}${RESET}`;
     console.log(`${prefix} ${displayMsg}${suffix}`);
 
     // File output (plain text, full message)
