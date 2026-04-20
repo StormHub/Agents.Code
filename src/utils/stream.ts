@@ -78,6 +78,7 @@ export async function consumeStream(
               }
             }
           }
+
           break;
         }
 
@@ -85,7 +86,6 @@ export async function consumeStream(
           lastResult = message;
           const { subtype, is_error, total_cost_usd, num_turns } = message;
 
-          message.session_id
           if (is_error || subtype !== "success") {
             const errors = message.subtype !== "success" ? message.errors : undefined;
             log.error(`${agentName} [${message.session_id}] result: ${subtype}`, {
@@ -160,6 +160,18 @@ export async function consumeStream(
 
         default:
           break;
+      }
+
+      // Log token usage.
+      // assistant messages nest usage under message.message.usage (per-turn);
+      // result messages expose it directly as message.usage (session total).
+      const usage = "usage" in message ? message.usage
+        : "message" in message && "usage" in message.message ? message.message.usage
+        : undefined;
+      if (usage) {
+        log.info(`${agentName} [${message.session_id}] usage`, {
+          ...usage,
+        });
       }
     }
   } catch (error) {
