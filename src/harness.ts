@@ -124,6 +124,11 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     const stepDuration = ((Date.now() - stepStart) / 1000 / 60).toFixed(1);
     stepLog.info(`Step ${step.index} finished in ${stepDuration} min — status: ${step.status}`);
 
+    if (config.debug) {
+      stepLog.info(`Debug mode enabled — halting after step ${step.index} for inspection.`);
+      break;
+    }
+
     if (!passed) {
       log.error(
         `Halting: step ${step.index} (${step.slug}) failed after ${config.maxStepFixRounds} attempts. ` +
@@ -144,9 +149,15 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     log.info(`\n🎉 Harness completed successfully in ${totalDuration} min`);
     log.info(`   All ${finalSteps.length} steps passing`);
     log.info(`   Application built in: ${outputDir}`);
-  } else {
+    return;
+  } 
+  
+  if (!config.debug) {
     log.warn(`\n⚠️  Harness halted in ${totalDuration} min`);
     log.warn(`   ${passing}/${finalSteps.length} steps passing, ${failed} failed, ${remaining} not yet attempted`);
     log.warn(`   Re-run with the same spec path to resume from the first non-passing step.`);
+    return;
   }
+
+  log.debug(`   Re-run with the same spec path to resume.`);
 }
