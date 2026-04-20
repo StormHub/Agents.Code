@@ -229,9 +229,9 @@ async function main() {
       process.exit(1);
     }
   } catch (error) {
-    logger.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof Error && error.stack) {
-      logger.debug(error.stack);
+      console.error(error.stack);
     }
     process.exit(1);
   }
