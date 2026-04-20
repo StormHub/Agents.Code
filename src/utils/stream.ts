@@ -1,9 +1,27 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { Logger } from "./logger.js";
 
+type RawSDKUsage = Extract<SDKMessage, { type: "assistant" }>['message']['usage'];
+type RawUsage = Pick<RawSDKUsage, "input_tokens" | "output_tokens" | "cache_creation_input_tokens" | "cache_read_input_tokens">;
+type UsageData = {
+  [K in keyof RawUsage]: NonNullable<RawUsage[K]>;
+};
+
+function mergeUsageTotals(
+  current: UsageData,
+  next?: RawUsage,
+): UsageData {
+  return {
+    input_tokens: current.input_tokens + (next?.input_tokens ?? 0),
+    cache_creation_input_tokens: current.cache_creation_input_tokens + (next?.cache_creation_input_tokens ?? 0),
+    cache_read_input_tokens: current.cache_read_input_tokens + (next?.cache_read_input_tokens ?? 0),
+    output_tokens: current.output_tokens + (next?.output_tokens ?? 0),
+  };
+}
+
 /**
  * Consumes the SDK message stream, logging all relevant message types.
- * Returns the result message if one was received, or undefined if the stream ended without one.
+ * Returns aggregated usage totals if the stream exposed usage data.
  *
  * If a successful result was already received and the process subsequently crashes
  * (e.g., from plugins running after completion), the crash is logged as a warning
@@ -13,8 +31,15 @@ export async function consumeStream(
   stream: AsyncIterable<SDKMessage>,
   agentName: string,
   log: Logger
-): Promise<SDKMessage | undefined> {
-  let lastResult: SDKMessage | undefined;
+): Promise<UsageData> {
+
+  let totalUsage: UsageData = {
+    input_tokens: 0,
+    output_tokens: 0,
+    cache_creation_input_tokens: 0,
+    cache_read_input_tokens: 0,
+  };
+  
   let succeeded = false;
 
   // SDKMessage type reference:
@@ -57,6 +82,7 @@ export async function consumeStream(
 
   try {
     for await (const message of stream) {
+
       switch (message.type) {
         case "assistant": {
           if (message.error) {
@@ -79,11 +105,11 @@ export async function consumeStream(
             }
           }
 
+          totalUsage = mergeUsageTotals(totalUsage, message.message?.usage);
           break;
         }
 
         case "result": {
-          lastResult = message;
           const { subtype, is_error, total_cost_usd, num_turns } = message;
 
           if (is_error || subtype !== "success") {
@@ -106,6 +132,8 @@ export async function consumeStream(
               cost_usd: total_cost_usd,
             });
           }
+
+          totalUsage = mergeUsageTotals(totalUsage, message.usage);
           break;
         }
 
@@ -161,18 +189,6 @@ export async function consumeStream(
         default:
           break;
       }
-
-      // Log token usage.
-      // assistant messages nest usage under message.message.usage (per-turn);
-      // result messages expose it directly as message.usage (session total).
-      const usage = "usage" in message ? message.usage
-        : "message" in message && "usage" in message.message ? message.message.usage
-        : undefined;
-      if (usage) {
-        log.info(`${agentName} [${message.session_id}] usage`, {
-          ...usage,
-        });
-      }
     }
   } catch (error) {
     if (succeeded) {
@@ -183,5 +199,5 @@ export async function consumeStream(
     }
   }
 
-  return lastResult;
+  return totalUsage;
 }
