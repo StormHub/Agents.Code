@@ -40,7 +40,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(bucketDir, { recursive: true });
 
-  const log = new Logger("orchestrator", resolve(artifactsDir, "run.log.txt"));
+  const log = new Logger("orchestrator", resolve(bucketDir, "run.log.txt"));
 
   const featuresPath = specPath(bucketDir);
   const stepsPath = stepsJsonPath(bucketDir);
