@@ -64,9 +64,9 @@ export async function consumeStream(
             log.error(`${agentName} [${message.session_id}] assistant error: ${message.error}`);
           }
           
-          if (message.message?.content) {
+          if (message.message.content) {
             for (const block of message.message.content) {
-              if (block.type === "text" && block.text?.trim()) {
+              if (block.type === "text" && block.text.trim()) {
                 log.agent(`${agentName} [${message.session_id}] ${block.text}`);
               } else if (block.type === "tool_use") {
                 // Log every tool invocation so we can see which skill tools are
