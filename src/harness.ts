@@ -40,7 +40,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
   mkdirSync(outputDir, { recursive: true });
   mkdirSync(bucketDir, { recursive: true });
 
-  const log = new Logger("orchestrator", resolve(artifactsDir, "orchestrator.log.txt"));
+  const log = new Logger("orchestrator", resolve(artifactsDir, "run.log.txt"));
 
   const featuresPath = specPath(bucketDir);
   const stepsPath = stepsJsonPath(bucketDir);
@@ -82,8 +82,8 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     mkdirSync(stepFolder, { recursive: true });
 
     // Per-step logger writes to its own log file
-    const stepLogFile = resolve(stepFolder, "step.log.txt");
-    const stepLog = new Logger(`orchestrator:step-${stepFolderName(step)}`, stepLogFile);
+    const stepLogFile = resolve(stepFolder, "run.log.txt");
+    const stepLog = new Logger(`step-${stepFolderName(step)}`, stepLogFile);
     stepLog.info(`═══ Step ${step.index}/${stepsFile.steps.length}: ${step.title} ═══`);
 
     // Mark in-progress and persist (so a kill mid-step is visible on resume)
