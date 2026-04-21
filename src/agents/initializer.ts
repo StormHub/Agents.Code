@@ -17,8 +17,8 @@ export async function runInitializer(
   userPrompt: string,
   featuresPath: string,
   config: HarnessConfig,
-  log: Logger,
 ): Promise<void> {
+  const log = new Logger("initializer", resolve(config.bucketDir, "initializer.log.txt"));
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
   const outputDir = resolve(config.outputDir);
 

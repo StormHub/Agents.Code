@@ -148,8 +148,7 @@ async function cmdScaffold(shortPrompt: string, args: ParsedArgs): Promise<void>
   mkdirSync(config.artifactsDir, { recursive: true });
 
   console.log(`Scaffolding feature bucket: ${slug}`);
-  const initializerLog = new Logger("initializer", resolve(config.artifactsDir, "initializer.log.txt"));
-  await runInitializer(shortPrompt, featuresPath, config, initializerLog);
+  await runInitializer(shortPrompt, featuresPath, config);
 
   console.log(`Draft written to ${featuresPath}. Refine it, then re-invoke with the spec path to build.`);
 }
