@@ -83,13 +83,13 @@ Be rigorous. Be specific. Verify every acceptance criterion yourself — do not 
     },
   });
 
-  var usage = await consumeStream(
+  await consumeStream(
     stream,
     `Step ${step.index} evaluator (round ${attempt})`,
     log,
   );
 
-  log.info(`Step evaluator completed for step ${step.index} (round ${attempt})`, usage);
+  log.info(`Step evaluator completed for step ${step.index} (round ${attempt})`);
 
   try {
     const feedback = readFileSync(feedbackPath, "utf-8");

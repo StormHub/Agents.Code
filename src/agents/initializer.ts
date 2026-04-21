@@ -54,7 +54,7 @@ Do NOT initialize a repo, install dependencies, or write any application code.
     },
   });
 
-   var usage = await consumeStream(stream, "Initializer", log);
+  await consumeStream(stream, "Initializer", log);
 
-  log.info(`Initializer completed → ${featuresPath}`, usage);
+  log.info(`Initializer completed → ${featuresPath}`);
 }

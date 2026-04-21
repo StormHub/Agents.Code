@@ -1,24 +1,6 @@
 import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
 import type { Logger } from "./logger.js";
 
-type RawSDKUsage = Extract<SDKMessage, { type: "assistant" }>['message']['usage'];
-type RawUsage = Pick<RawSDKUsage, "input_tokens" | "output_tokens" | "cache_creation_input_tokens" | "cache_read_input_tokens">;
-type UsageData = {
-  [K in keyof RawUsage]: NonNullable<RawUsage[K]>;
-};
-
-function mergeUsageTotals(
-  current: UsageData,
-  next?: RawUsage,
-): UsageData {
-  return {
-    input_tokens: current.input_tokens + (next?.input_tokens ?? 0),
-    cache_creation_input_tokens: current.cache_creation_input_tokens + (next?.cache_creation_input_tokens ?? 0),
-    cache_read_input_tokens: current.cache_read_input_tokens + (next?.cache_read_input_tokens ?? 0),
-    output_tokens: current.output_tokens + (next?.output_tokens ?? 0),
-  };
-}
-
 /**
  * Consumes the SDK message stream, logging all relevant message types.
  * Returns aggregated usage totals if the stream exposed usage data.
@@ -31,15 +13,8 @@ export async function consumeStream(
   stream: AsyncIterable<SDKMessage>,
   agentName: string,
   log: Logger
-): Promise<UsageData> {
+): Promise<boolean> {
 
-  let totalUsage: UsageData = {
-    input_tokens: 0,
-    output_tokens: 0,
-    cache_creation_input_tokens: 0,
-    cache_read_input_tokens: 0,
-  };
-  
   let succeeded = false;
 
   // SDKMessage type reference:
@@ -105,7 +80,6 @@ export async function consumeStream(
             }
           }
 
-          totalUsage = mergeUsageTotals(totalUsage, message.message?.usage);
           break;
         }
 
@@ -133,7 +107,6 @@ export async function consumeStream(
             });
           }
 
-          totalUsage = mergeUsageTotals(totalUsage, message.usage);
           break;
         }
 
@@ -199,5 +172,5 @@ export async function consumeStream(
     }
   }
 
-  return totalUsage;
+  return succeeded;
 }

@@ -76,11 +76,11 @@ Follow your system prompt. Do not write application code.
     },
   });
 
-  var usage = await consumeStream(
+  await consumeStream(
     stream,
     `Step ${step.index} planner`,
     log,
   );
 
-  log.info(`Step planner completed for step ${step.index}`, usage);
+  log.info(`Step planner completed for step ${step.index}`);
 }

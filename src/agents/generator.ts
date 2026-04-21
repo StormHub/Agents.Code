@@ -88,11 +88,11 @@ ${isRetry ? "Focus the work on what the evaluator flagged. Do not regress prior 
     },
   });
 
-  var usage = await consumeStream(
+  await consumeStream(
     stream,
     `Step ${step.index} generator (attempt ${attempt})`,
     log,
   );
 
-  log.info(`Step generator completed for step ${step.index} (attempt ${attempt})`, usage);
+  log.info(`Step generator completed for step ${step.index} (attempt ${attempt})`);
 }
