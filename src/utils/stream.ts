@@ -85,14 +85,14 @@ export async function consumeStream(
         }
 
         case "result": {
-          const { subtype, is_error, total_cost_usd, num_turns } = message;
+          const { subtype, is_error, total_cost_usd, num_turns, usage } = message;
 
           if (is_error || subtype !== "success") {
             const errors = message.subtype !== "success" ? message.errors : undefined;
             log.error(`${agentName} [${message.session_id}] result: ${subtype}`, {
               is_error,
               num_turns,
-              cost_usd: total_cost_usd,
+              total_cost_usd,
               errors: errors?.length ? errors : undefined,
             });
             if (errors?.length) {
@@ -104,9 +104,11 @@ export async function consumeStream(
             succeeded = true;
             log.info(`${agentName} [${message.session_id}] result: ${subtype}`, {
               num_turns,
-              cost_usd: total_cost_usd,
+              total_cost_usd,
             });
           }
+
+          log.info(`${agentName} [${message.session_id}]`, usage);
 
           break;
         }
