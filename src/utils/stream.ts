@@ -108,15 +108,6 @@ export async function consumeStream(
             });
           }
 
-          try {
-            const usage = await query.getContextUsage();
-            log.info(`${agentName} context usage`, usage);
-          }
-          catch (error) {
-            const msg = error instanceof Error ? error.message : String(error);
-            log.warn(`${agentName} unable to capture context usage: ${msg}`);
-          }
-
           break;
         }
 
