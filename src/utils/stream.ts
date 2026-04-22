@@ -115,10 +115,13 @@ export async function consumeStream(
 
         case "system": {
           if (message.subtype === "init") {
+            
             log.info(`${agentName} [${message.session_id}] session init`, {
               model: message.model,
               tools: message.tools,
               skills: message.skills,
+              mcp_servers: message.mcp_servers,
+              plugins: message.plugins,
             });
           }
           break;
