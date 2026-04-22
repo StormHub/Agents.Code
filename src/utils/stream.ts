@@ -1,4 +1,4 @@
-import type { SDKMessage, Query } from "@anthropic-ai/claude-agent-sdk";
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import type { Logger } from "./logger.js";
 
 /**
@@ -16,6 +16,7 @@ export async function consumeStream(
 ): Promise<boolean> {
 
   let succeeded = false;
+  let usageCaptured = false;
 
   // SDKMessage type reference:
   //
@@ -107,6 +108,15 @@ export async function consumeStream(
             });
           }
 
+          try {
+            const usage = await query.getContextUsage();
+            log.info(`${agentName} context usage`, usage);
+          }
+          catch (error) {
+            const msg = error instanceof Error ? error.message : String(error);
+            log.warn(`${agentName} unable to capture context usage: ${msg}`);
+          }
+
           break;
         }
 
@@ -163,10 +173,6 @@ export async function consumeStream(
           break;
       }
     }
-
-
-    var usage = await query.getContextUsage();
-    log.info(`${agentName} context usage`, usage);
   } catch (error) {
     if (succeeded) {
       const msg = error instanceof Error ? error.message : String(error);
