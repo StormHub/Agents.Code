@@ -1,4 +1,4 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { SDKMessage, Query } from "@anthropic-ai/claude-agent-sdk";
 import type { Logger } from "./logger.js";
 
 /**
@@ -10,7 +10,7 @@ import type { Logger } from "./logger.js";
  * rather than propagated as a fatal error.
  */
 export async function consumeStream(
-  stream: AsyncIterable<SDKMessage>,
+  query: Query,
   agentName: string,
   log: Logger
 ): Promise<boolean> {
@@ -56,7 +56,7 @@ export async function consumeStream(
   //   control_cancel_request — cancels a previously issued control_request
 
   try {
-    for await (const message of stream) {
+    for await (const message of query) {
 
       switch (message.type) {
         case "assistant": {
@@ -163,6 +163,10 @@ export async function consumeStream(
           break;
       }
     }
+
+
+    var usage = await query.getContextUsage();
+    log.info(`${agentName} context usage`, usage);
   } catch (error) {
     if (succeeded) {
       const msg = error instanceof Error ? error.message : String(error);
