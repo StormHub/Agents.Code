@@ -1,5 +1,6 @@
 import "dotenv/config";
 import { resolve } from "path";
+import { z } from "zod";
 
 export interface AuthConfig {
   /** Direct API key (ANTHROPIC_API_KEY) */
@@ -18,19 +19,36 @@ export interface AuthConfig {
   apiKeyHelper?: string;
 }
 
+const runOptionSchema = z.object({
+  maxStepFixRounds: 
+    z.coerce.number()
+     .positive()
+     .default(10)
+     .describe("Max generator → evaluator iterations per step default 10"),
+  maxBudgetUsd: 
+    z.coerce.number()
+     .positive()
+     .optional()
+     .describe("Max budget in USD"),
+});
+
 export interface HarnessConfig {
   auth: AuthConfig;
   model?: string;
-  /** Per-step retry budget: max generator→evaluator iterations within a single step. */
+
+  /** Per-step retry budget: max generator → evaluator iterations within a single step. */
   maxStepFixRounds: number;
   maxBudgetUsd?: number;
+
   outputDir: string;
   artifactsDir: string;
   /** Per-feature bucket under artifactsDir (e.g. `<artifactsDir>/feature-backend-api`).
    * Contains spec.md, steps.json, and all per-step folders. */
   bucketDir: string;
+
   /** Load settings from filesystem (user, project, local) */
   settingSources: Array<"user" | "project" | "local">;
+
   debug?: boolean;
 }
 
@@ -61,8 +79,23 @@ export function buildAgentEnv(auth: AuthConfig): Record<string, string> {
 }
 
 export function loadConfig(
-  overrides: Partial<HarnessConfig> & { outputDir: string; bucketDir: string },
+  overrides: Omit<Partial<HarnessConfig>, "maxStepFixRounds" | "maxBudgetUsd" | "outputDir" | "bucketDir"> & {
+    maxStepFixRounds?: string;
+    maxBudgetUsd?: string;
+  } & {
+     outputDir: string; 
+     bucketDir: string 
+  },
 ): HarnessConfig {
+  var parsedResult = runOptionSchema.safeParse({
+    maxStepFixRounds: overrides.maxStepFixRounds ?? process.env.MAX_STEP_FIX_ROUNDS,
+    maxBudgetUsd: overrides.maxBudgetUsd ?? process.env.MAX_BUDGET_USD,
+  });
+
+  if (!parsedResult.success) {
+    throw new Error(`Invalid argument: ${parsedResult.error}`);
+  }
+
   const auth: AuthConfig = {
     apiKey: (overrides.auth?.apiKey) ?? process.env.ANTHROPIC_API_KEY,
     authToken: (overrides.auth?.authToken) ?? process.env.ANTHROPIC_AUTH_TOKEN,
@@ -80,8 +113,7 @@ export function loadConfig(
   return {
     auth,
     model: overrides.model ?? process.env.MODEL,
-    maxStepFixRounds: overrides.maxStepFixRounds ?? parseInt(process.env.MAX_STEP_FIX_ROUNDS ?? "10", 10),
-    maxBudgetUsd: overrides.maxBudgetUsd ?? parseFloat(process.env.MAX_BUDGET_USD ?? "50"),
+    ...parsedResult.data,
     outputDir,
     artifactsDir: overrides.artifactsDir ?? resolve(outputDir, "artifacts"),
     bucketDir: overrides.bucketDir,

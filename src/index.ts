@@ -31,7 +31,6 @@ function printUsage() {
     --force                  (a) overwrite an existing spec.md; (b) re-derive steps.json
     --model <model>          Claude model to use
     --max-step-rounds <n>    Per-step retry budget (default: 10)
-    --max-budget <usd>       Max budget in USD (default: 50)
     --debug                  Enable debug mode
 
   Example:
@@ -144,7 +143,13 @@ async function cmdScaffold(shortPrompt: string, args: ParsedArgs): Promise<void>
     process.exit(1);
   }
 
-  const config = loadConfig({ outputDir, bucketDir });
+  const config = loadConfig({ 
+    maxStepFixRounds: args.flags["max-step-rounds"],
+    maxBudgetUsd: args.flags["max-budget"],
+    outputDir, 
+    bucketDir, 
+    debug: args.bools.has("debug") 
+  });
   mkdirSync(config.artifactsDir, { recursive: true });
 
   console.log(`Scaffolding feature bucket: ${slug}`);
@@ -177,10 +182,8 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
     outputDir,
     bucketDir,
     model: args.flags["model"],
-    maxStepFixRounds: args.flags["max-step-rounds"]
-      ? parseInt(args.flags["max-step-rounds"], 10)
-      : undefined,
-    maxBudgetUsd: args.flags["max-budget"] ? parseFloat(args.flags["max-budget"]) : undefined,
+    maxStepFixRounds: args.flags["max-step-rounds"],
+    maxBudgetUsd: args.flags["max-budget"],
     debug: args.bools.has("debug"),
   });
 
