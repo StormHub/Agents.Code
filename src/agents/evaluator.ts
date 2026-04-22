@@ -68,7 +68,7 @@ Be rigorous. Be specific. Verify every acceptance criterion yourself — do not 
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.05,
+      maxBudgetUsd: config.maxBudgetUsd,
       settingSources: config.settingSources,
       mcpServers: {
         playwright: {

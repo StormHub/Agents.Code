@@ -68,7 +68,7 @@ Follow your system prompt. Do not write application code.
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.03,
+      maxBudgetUsd: config.maxBudgetUsd,
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),

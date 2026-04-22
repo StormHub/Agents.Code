@@ -46,7 +46,7 @@ Do NOT initialize a repo, install dependencies, or write any application code.
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.05,
+      maxBudgetUsd: config.maxBudgetUsd,
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),

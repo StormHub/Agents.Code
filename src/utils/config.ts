@@ -23,7 +23,7 @@ export interface HarnessConfig {
   model?: string;
   /** Per-step retry budget: max generator→evaluator iterations within a single step. */
   maxStepFixRounds: number;
-  maxBudgetUsd: number;
+  maxBudgetUsd?: number;
   outputDir: string;
   artifactsDir: string;
   /** Per-feature bucket under artifactsDir (e.g. `<artifactsDir>/feature-backend-api`).
@@ -61,7 +61,7 @@ export function buildAgentEnv(auth: AuthConfig): Record<string, string> {
 }
 
 export function loadConfig(
-  overrides: Partial<HarnessConfig> & { bucketDir: string },
+  overrides: Partial<HarnessConfig> & { outputDir: string; bucketDir: string },
 ): HarnessConfig {
   const auth: AuthConfig = {
     apiKey: (overrides.auth?.apiKey) ?? process.env.ANTHROPIC_API_KEY,
@@ -75,8 +75,7 @@ export function loadConfig(
 
   // Auth is optional — if the user is signed into Claude Code locally,
   // the SDK subprocess inherits the existing session automatically.
-
-  const outputDir = overrides.outputDir ?? "./output";
+  const outputDir = overrides.outputDir;
 
   return {
     auth,

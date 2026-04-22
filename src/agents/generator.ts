@@ -73,7 +73,7 @@ ${isRetry ? "Focus the work on what the evaluator flagged. Do not regress prior 
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.15,
+      maxBudgetUsd: config.maxBudgetUsd,
       settingSources: config.settingSources,
       mcpServers: {
         playwright: {
