@@ -1,4 +1,4 @@
-import { mkdirSync, existsSync, readFileSync, writeFileSync } from "fs";
+import { mkdirSync, copyFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
 import { Logger } from "./utils/logger.js";
 import type { HarnessConfig } from "./utils/config.js";
@@ -11,6 +11,8 @@ import {
   stepsJsonPath,
   stepDir,
   stepFolderName,
+  stepBuildStatusPath,
+  stepFeedbackPath,
 } from "./artifacts/types.js";
 
 export interface HarnessOptions {
@@ -28,6 +30,16 @@ function loadSteps(stepsPath: string): StepsFile {
 
 function saveSteps(stepsPath: string, file: StepsFile): void {
   writeFileSync(stepsPath, JSON.stringify(file, null, 2) + "\n", "utf-8");
+}
+
+/** Copy `source` to `source` with `-N` suffix before it gets overwritten. */
+function archiveIfExists(source: string, attempt: number, log: Logger): void {
+  if (!existsSync(source)) return;
+  const ext = source.endsWith(".md") ? ".md" : "";
+  const base = ext ? source.slice(0, -ext.length) : source;
+  const dest = `${base}-${attempt}${ext}`;
+  copyFileSync(source, dest);
+  log.info(`Archived ${source} → ${dest}`);
 }
 
 export async function runHarness({ config }: HarnessOptions): Promise<void> {
@@ -101,6 +113,12 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     // Generator → Evaluator loop, up to maxStepFixRounds attempts
     let passed = false;
     for (let attempt = 1; attempt <= config.maxStepFixRounds; attempt++) {
+      // Archive prior artifacts before they get overwritten
+      if (attempt > 1) {
+        archiveIfExists(stepBuildStatusPath(bucketDir, step), attempt - 1, stepLog);
+        archiveIfExists(stepFeedbackPath(bucketDir, step), attempt - 1, stepLog);
+      }
+
       stepLog.info(`── Generator (attempt ${attempt}/${config.maxStepFixRounds}) ──`);
       const genStart = Date.now();
       await runStepGenerator(step, attempt, config, stepLog);
