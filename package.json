@@ -1,7 +1,7 @@
 {
   "name": "agents-code",
   "version": "1.0.0",
-  "description": "Autonomous agent coding using Claude Agent SDK",
+  "description": "Agent coding using Claude Agent SDK",
   "type": "module",
   "main": "dist/harness/index.js",
   "scripts": {
