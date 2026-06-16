@@ -1,38 +1,44 @@
-import { readFileSync } from "fs";
-import { resolve, dirname } from "path";
-import { fileURLToPath } from "url";
+import { existsSync, readFileSync } from "fs";
 import type { Logger } from "../../shared/logger.js";
 import type { LoopConfig } from "../config.js";
 import type { LoopState } from "../state.js";
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const PROMPT_PATH = resolve(__dirname, "../prompts/triage.md");
-
 /**
- * DISCOVER stage. Reads the target's GOAL.md + local signals (git status,
- * TODO/FIXME) and updates the work backlog in `state`.
+ * DISCOVER stage. Reads the goal file and records work items into `state`.
  *
- * STUB: real implementation will drive a query()-backed agent (see
- * src/harness/agents/generator.ts for the recipe) to read signals and emit
- * structured work items. For now it validates prompt wiring and seeds one
- * sample item so the skeleton cycle can run end-to-end.
+ * Stage 1 (current): deterministic — read GOAL.md and seed a single work item
+ * capturing the goal. No LLM/network/cost. A later refinement can break the goal
+ * into finer items (e.g. local signals: git status, TODO/FIXME) via a query()-backed
+ * agent (see src/harness/agents/generator.ts for the recipe).
  */
 export async function runTriage(state: LoopState, config: LoopConfig, log: Logger): Promise<void> {
-  const prompt = readFileSync(PROMPT_PATH, "utf-8");
-  log.info(`[stub] triage would run with ${prompt.length}-char prompt`, {
-    target: config.targetDir,
-    goal: config.goalPath,
-  });
-  // TODO: wire query() + consumeStream to discover real work from goal + signals.
-
-  if (state.items.length === 0) {
-    log.info("[stub] triage seeding one sample work item (skeleton demo)");
-    state.items.push({
-      id: "sample-item",
-      title: "Sample work item",
-      source: "goal",
-      detail: "Placeholder produced by stub triage so the cycle can demonstrate end-to-end.",
-      status: "backlog",
-    });
+  if (!existsSync(config.goalPath)) {
+    log.warn(`No goal file at ${config.goalPath} — nothing to discover.`);
+    return;
   }
+
+  const goal = readFileSync(config.goalPath, "utf-8").trim();
+  if (!goal) {
+    log.warn(`Goal file is empty: ${config.goalPath} — nothing to discover.`);
+    return;
+  }
+
+  // Seed the goal item only once — across cycles it may be backlog (retrying),
+  // in_progress, or already shipped; never recreate it.
+  if (state.items.some((i) => i.id === "goal")) {
+    log.info("Goal item already tracked — skipping discovery.");
+    return;
+  }
+
+  const firstLine = goal.split("\n").map((l) => l.trim()).find((l) => l.length > 0) ?? goal;
+  const title = firstLine.length > 80 ? firstLine.slice(0, 77) + "..." : firstLine;
+
+  log.info(`Discovered goal → seeding 1 work item: "${title}"`, { goal: config.goalPath });
+  state.items.push({
+    id: "goal",
+    title,
+    source: "goal",
+    detail: goal,
+    status: "backlog",
+  });
 }

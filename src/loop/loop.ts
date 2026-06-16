@@ -15,8 +15,10 @@ export interface LoopOptions {
  * The loop subsystem's orchestrator — the perpetual, discovery-driven counterpart
  * to the harness's finite step loop (src/harness/harness.ts).
  *
- * One cycle: DISCOVER → SELECT → DISTRIBUTE → IMPLEMENT → VERIFY → RECORD → DECIDE.
- * This skeleton drives stubbed agents (no real query() calls yet).
+ * Each cycle: DISCOVER → SELECT → IMPLEMENT → VERIFY → RECORD → DECIDE.
+ * In "iterate" mode the loop repeats until the goal is met (no open items remain),
+ * the iteration cap is hit, or `--once` forces a single cycle. A reviewer FAIL sends
+ * the item back to the backlog so the next cycle retries it against the prior verdict.
  */
 export async function runLoop({ config }: LoopOptions): Promise<void> {
   // Ensure .loop/ exists before the logger and state file are written.
@@ -25,6 +27,7 @@ export async function runLoop({ config }: LoopOptions): Promise<void> {
 
   log.info("Starting loop", {
     mode: config.mode,
+    maxIterations: config.maxIterations,
     target: config.targetDir,
     goal: config.goalPath,
     implementerModel: config.implementerModel,
@@ -32,9 +35,9 @@ export async function runLoop({ config }: LoopOptions): Promise<void> {
   });
 
   let cycle = 0;
-  do {
+  while (true) {
     cycle += 1;
-    log.info(`═══ Cycle ${cycle} ═══`);
+    log.info(`═══ Cycle ${cycle}${config.mode === "iterate" ? `/${config.maxIterations}` : ""} ═══`);
     const state = loadState(config.statePath);
 
     // 1. DISCOVER
@@ -47,7 +50,7 @@ export async function runLoop({ config }: LoopOptions): Promise<void> {
     log.info("── SELECT ──");
     const item = selectNext(state);
     if (!item) {
-      log.info("No actionable items — loop is idle.");
+      log.info("── DECIDE ── No actionable items remain — goal met. Stopping.");
       break;
     }
     log.info(`Selected item: ${item.id} (${item.title})`);
@@ -65,24 +68,36 @@ export async function runLoop({ config }: LoopOptions): Promise<void> {
     log.info("── VERIFY ──");
     const passed = await runReviewer(item, config, log);
 
-    // 6. RECORD
+    // 6. RECORD — PASS ships it; FAIL sends it back to the backlog to retry next cycle.
     log.info("── RECORD ──");
-    item.status = passed ? "shipped" : "blocked";
-    item.notes = passed ? "verified by reviewer (stub)" : "reviewer FAIL (stub)";
+    item.status = passed ? "shipped" : "backlog";
+    item.notes = passed
+      ? "verified by reviewer"
+      : `reviewer FAIL — retrying against .loop/review-${item.id}.md`;
     saveState(config.statePath, state);
     writeStateMd(config.stateMdPath, state);
     log.info(`Item ${item.id} → ${item.status}`);
 
     // 7. DECIDE
     log.info("── DECIDE ──");
+    const openItems = state.items.filter(
+      (i) => i.status === "backlog" || i.status === "in_progress",
+    ).length;
+
+    if (openItems === 0) {
+      log.info("Goal met — all items shipped. Stopping.");
+      break;
+    }
     if (config.mode === "once") {
       log.info("Mode 'once' — exiting after one cycle.");
       break;
     }
-    // TODO: evaluate goal stop-condition; if unmet, sleep until next heartbeat.
-    log.info("[stub] watch mode: would sleep until next heartbeat, then re-run.");
-    break;
-  } while (config.mode === "watch");
+    if (cycle >= config.maxIterations) {
+      log.warn(`Max iterations (${config.maxIterations}) reached with ${openItems} item(s) still open — stopping.`);
+      break;
+    }
+    log.info(`${openItems} item(s) still open — continuing to next cycle.`);
+  }
 
   log.info(`Loop finished after ${cycle} cycle(s). State: ${config.stateMdPath}`);
 }

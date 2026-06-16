@@ -13,18 +13,19 @@ function printUsage() {
   Options:
     --target <dir>             Repo the loop operates on (default: current directory)
     --goal <file>              Goal/backlog file (default: <target>/GOAL.md)
-    --once                     Run a single cycle and exit (default)
-    --watch                    Loop on a heartbeat (not yet implemented — runs once)
+    --once                     Run exactly one cycle and exit (default: iterate until goal met)
+    --max-iterations <n>       Cap on cycles when iterating (default: 10)
     --implementer-model <m>    Model for the implementer agent
     --reviewer-model <m>       Model for the reviewer agent (use a separate/stronger one)
+    --max-budget <usd>         Cap total spend for the run
     --debug                    Enable debug mode
 
   Example:
-    npx tsx src/loop/index.ts --once --target .
+    npx tsx src/loop/index.ts --target . --max-budget 5
   `);
 }
 
-const BOOL_FLAGS = new Set(["once", "watch", "debug"]);
+const BOOL_FLAGS = new Set(["once", "debug"]);
 
 interface ParsedArgs {
   flags: Record<string, string>;
@@ -68,7 +69,9 @@ async function main() {
     goalPath: args.flags["goal"],
     implementerModel: args.flags["implementer-model"],
     reviewerModel: args.flags["reviewer-model"],
-    mode: args.bools.has("watch") ? "watch" : "once",
+    maxBudgetUsd: args.flags["max-budget"],
+    maxIterations: args.flags["max-iterations"],
+    mode: args.bools.has("once") ? "once" : "iterate",
     debug: args.bools.has("debug"),
   };
 
