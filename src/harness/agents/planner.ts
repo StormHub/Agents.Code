@@ -2,9 +2,10 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { Logger } from "../utils/logger.js";
-import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
-import { consumeStream } from "../utils/stream.js";
+import { Logger } from "../../shared/logger.js";
+import type { HarnessConfig } from "../config.js";
+import { buildAgentEnv } from "../../shared/auth.js";
+import { consumeStream } from "../../shared/stream.js";
 import {
   specPath,
   type Step,

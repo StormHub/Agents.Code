@@ -1,9 +1,9 @@
 import { mkdirSync, existsSync, writeFileSync } from "fs";
 import { resolve } from "path";
-import { Logger } from "./utils/logger.js";
-import type { HarnessConfig } from "./utils/config.js";
+import { Logger } from "../shared/logger.js";
+import type { HarnessConfig } from "./config.js";
 import { stepsJsonPath } from "./artifacts/types.js";
-import { parseRequirements, RequirementsParseError } from "./utils/requirements-parser.js";
+import { parseRequirements, RequirementsParseError } from "./requirements-parser.js";
 
 interface DeriveOptions {
   /** Full markdown contents of the user-authored spec.md. */

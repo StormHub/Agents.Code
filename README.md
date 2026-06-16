@@ -34,14 +34,14 @@ npx playwright install chromium
 
 # (a) Scaffold a draft spec.md from a short prompt.
 # Writes to ./kanban/artifacts/<auto-slug>/spec.md
-npx tsx src/index.ts "Build a task management app with kanban boards" --output-dir ./kanban
+npx tsx src/harness/index.ts "Build a task management app with kanban boards" --output-dir ./kanban
 
 # ... Review ./kanban/artifacts/<auto-slug>/spec.md ...
 # The default scaffold md generated has some (reviewer: confirm) tags, it is recommended to use some skills
 # such as https://github.com/mattpocock/skills/blob/main/grill-me/SKILL.md to interactively refine the spec
 
 # (b) Build from the spec.md, steps.json is derived on first run, then reused on resume.
-npx tsx src/index.ts ./kanban/artifacts/<auto-slug>
+npx tsx src/harness/index.ts ./kanban/artifacts/<auto-slug>
 ```
 
 ### Configuration via `.env`
@@ -62,10 +62,10 @@ Any run option can be set in `.env` instead of passed on the CLI. CLI flags take
 
 ```
 # Scaffold a spec from a short prompt
-npx tsx src/index.ts "<short prompt>" --output-dir <dir> [--name <slug>] [--force]
+npx tsx src/harness/index.ts "<short prompt>" --output-dir <dir> [--name <slug>] [--force]
 
 # Build from a spec (derives steps.json if missing, then runs)
-npx tsx src/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
+npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
 ```
 
 ### Options

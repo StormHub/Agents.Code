@@ -1,7 +1,7 @@
 import { mkdirSync, copyFileSync, existsSync, readFileSync, writeFileSync } from "fs";
 import { resolve } from "path";
-import { Logger } from "./utils/logger.js";
-import type { HarnessConfig } from "./utils/config.js";
+import { Logger } from "../shared/logger.js";
+import type { HarnessConfig } from "./config.js";
 import { runStepPlanner } from "./agents/planner.js";
 import { runStepGenerator } from "./agents/generator.js";
 import { runStepEvaluator } from "./agents/evaluator.js";

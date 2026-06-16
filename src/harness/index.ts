@@ -2,8 +2,8 @@
 
 import { existsSync, readFileSync, mkdirSync, statSync } from "fs";
 import { resolve, dirname, isAbsolute, basename } from "path";
-import { loadConfig } from "./utils/config.js";
-import { Logger } from "./utils/logger.js";
+import { loadConfig } from "./config.js";
+import { Logger } from "../shared/logger.js";
 import { runHarness } from "./harness.js";
 import { deriveSteps } from "./steps.js";
 import { runInitializer } from "./agents/initializer.js";
