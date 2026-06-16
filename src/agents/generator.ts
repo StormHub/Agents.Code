@@ -70,7 +70,7 @@ ${isRetry ? "Focus the work on what the evaluator flagged. Do not regress prior 
       systemPrompt,
       model: config.model,
       cwd: outputDir,
-      allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
+      allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash", "mcp__playwright"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
       maxBudgetUsd: config.maxBudgetUsd,
