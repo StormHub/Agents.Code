@@ -11,7 +11,7 @@ export interface Step {
   slug: string;
   /** Short human-readable title */
   title: string;
-  /** What this step delivers, written by the initializer */
+  /** What this step delivers, taken from the step's description in spec.md */
   description: string;
   /** Concrete, testable criteria the evaluator can check */
   acceptanceCriteria: string[];

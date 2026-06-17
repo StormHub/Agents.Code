@@ -29,9 +29,9 @@ npm install
 # Install Playwright (used by the harness's generator + evaluator)
 npx playwright install chromium
 
-# Run the harness: scaffold a draft spec, then build from it
-npx tsx src/harness/index.ts "Build a task management app with kanban boards" --output-dir ./kanban
-npx tsx src/harness/index.ts ./kanban/artifacts/<auto-slug>/spec.md
+# Author a spec.md (by hand or with a spec-writing skill), then build from it
+#   ./kanban/artifacts/kanban/spec.md   (see src/harness/README.md → "Spec format")
+npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
 ```
 
 See **[src/harness/README.md](src/harness/README.md)** for the full CLI, options, artifact layout, and how the per-step loop works.

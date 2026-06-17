@@ -6,29 +6,24 @@ import { loadConfig } from "./config.js";
 import { Logger } from "../shared/logger.js";
 import { runHarness } from "./harness.js";
 import { deriveSteps } from "./steps.js";
-import { runInitializer } from "./agents/initializer.js";
-import { specPath, stepsJsonPath } from "./artifacts/types.js";
+import { stepsJsonPath } from "./artifacts/types.js";
 
 function printUsage() {
   console.log(`
   Agents.Code — Step-by-Step Autonomous Coding Harness
 
-  Two ways to invoke:
+  Build an application from a spec.md (derives steps.json if missing, then runs):
 
-    (a) Scaffold a spec from a short prompt:
-        npx tsx src/index.ts "<short prompt>" --output-dir <dir> [--name <slug>]
-        → writes <outputDir>/artifacts/<slug>/spec.md for you to refine.
+      npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
 
-    (b) Build from a spec (derives steps.json if missing, then runs):
-        npx tsx src/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
-        → the spec's parent directory is the "feature bucket"; steps.json
-          and all step artifacts live alongside it.
+  Author the spec.md yourself — by hand or with a spec-writing skill. The spec's
+  parent directory is the "feature bucket"; steps.json and all step artifacts
+  live alongside it.
 
   Options:
-    --name <slug>            Override the auto-derived feature-bucket slug (scaffold only)
-    --output-dir <dir>       Application root. For (b), defaults to the ancestor of
-                             the spec's 'artifacts/' dir, or to the bucket dir itself.
-    --force                  (a) overwrite an existing spec.md; (b) re-derive steps.json
+    --output-dir <dir>       Application root. Defaults to the ancestor of the
+                             spec's 'artifacts/' dir, or to the bucket dir itself.
+    --force                  Re-derive steps.json even if it already exists
     --model <model>          Claude model to use
     --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
     --max-replan-rounds <n>  Max planner re-plans per step on a REPLAN verdict (default: 2)
@@ -37,9 +32,8 @@ function printUsage() {
     --debug                  Enable debug mode
 
   Example:
-    npx tsx src/index.ts "Build a kanban app with tags and filters" --output-dir ./kanban
-    # ... edit ./kanban/artifacts/build-a-kanban-app-with-tags/spec.md ...
-    npx tsx src/index.ts ./kanban/artifacts/build-a-kanban-app-with-tags/spec.md
+    # ... author ./kanban/artifacts/kanban/spec.md (by hand or via a skill) ...
+    npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
   `);
 }
 
@@ -85,30 +79,6 @@ function parseArgs(args: string[]): ParsedArgs {
   return { positional, flags, bools };
 }
 
-/** Derive a filesystem-safe slug from a short prompt. */
-function slugifyPrompt(prompt: string): string {
-  const slug = prompt
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .split("-")
-    .slice(0, 6)
-    .join("-")
-    .slice(0, 50)
-    .replace(/-+$/g, "");
-  return slug || "feature";
-}
-
-/** If `<base>` is taken, return `<base>-2`, `<base>-3`, ... until a free one is found. */
-function uniqueBucketSlug(artifactsDir: string, base: string): string {
-  if (!existsSync(resolve(artifactsDir, base))) return base;
-  for (let n = 2; n < 1000; n++) {
-    const candidate = `${base}-${n}`;
-    if (!existsSync(resolve(artifactsDir, candidate))) return candidate;
-  }
-  throw new Error(`Could not find a free bucket name starting with "${base}"`);
-}
-
 /**
  * Given a spec path and optional --output-dir, infer the outputDir (application root).
  * Rule: if the spec sits under some `…/artifacts/<slug>/spec.md`, outputDir is the
@@ -119,49 +89,6 @@ function inferOutputDir(bucketDir: string, explicit?: string): string {
   const parent = dirname(bucketDir);
   if (basename(parent) === "artifacts") return dirname(parent);
   return bucketDir;
-}
-
-async function cmdScaffold(shortPrompt: string, args: ParsedArgs): Promise<void> {
-  const outputDirArg = args.flags["output-dir"];
-  if (!outputDirArg) {
-    printUsage();
-    console.error(`\n  Error: Short prompts require --output-dir.\n`);
-    process.exit(1);
-  }
-
-  const outputDir = resolve(outputDirArg);
-  const artifactsDir = resolve(outputDir, "artifacts");
-  mkdirSync(artifactsDir, { recursive: true });
-
-  const baseSlug = args.flags["name"] ? slugifyPrompt(args.flags["name"]) : slugifyPrompt(shortPrompt);
-  const slug = args.bools.has("force") ? baseSlug : uniqueBucketSlug(artifactsDir, baseSlug);
-  const bucketDir = resolve(artifactsDir, slug);
-  mkdirSync(bucketDir, { recursive: true });
-
-  const featuresPath = specPath(bucketDir);
-  if (existsSync(featuresPath) && !args.bools.has("force")) {
-    console.error(
-      `\n  Error: ${featuresPath} already exists. Edit it directly, pass --force, or choose a different --name.\n`,
-    );
-    process.exit(1);
-  }
-
-  const config = loadConfig({
-    maxStepFixRounds: args.flags["max-step-rounds"],
-    maxReplanRounds: args.flags["max-replan-rounds"],
-    bestOfN: args.flags["best-of-n"],
-    escalateModel: args.flags["escalate-model"],
-    maxBudgetUsd: args.flags["max-budget"],
-    outputDir,
-    bucketDir,
-    debug: args.bools.has("debug")
-  });
-  mkdirSync(config.artifactsDir, { recursive: true });
-
-  console.log(`Scaffolding feature bucket: ${slug}`);
-  await runInitializer(shortPrompt, featuresPath, config);
-
-  console.log(`Draft written to ${featuresPath}. Refine it, then re-invoke with the spec path to build.`);
 }
 
 async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<void> {
@@ -228,8 +155,11 @@ async function main() {
       }
       await cmdBuildFromSpec(first, args);
     } else if (first) {
-      // Treat all positionals as a single short prompt (user may not quote it).
-      await cmdScaffold(args.positional.join(" "), args);
+      printUsage();
+      console.error(
+        `\n  Error: Provide a path to a spec.md. Author one by hand or with a spec-writing skill, then pass its path.\n`,
+      );
+      process.exit(1);
     } else {
       printUsage();
       process.exit(1);

@@ -1,6 +1,6 @@
 # src/harness — Step-by-Step Autonomous Coding Harness
 
-A *finite* spec→app compiler built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes a short prompt, scaffolds a feature spec you can edit, derives an ordered step plan, then builds the application **one step at a time** with a planner → generator → evaluator loop per step. The harness is stack-agnostic — the tech stack is chosen in `spec.md`.
+A *finite* spec→app compiler built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes an editable feature `spec.md`, derives an ordered step plan, then builds the application **one step at a time** with a planner → generator → evaluator loop per step. The harness is stack-agnostic — the tech stack is chosen in `spec.md`.
 
 > Part of [Agents.Code](../../README.md). The sibling subsystem is [`src/loop`](../loop/README.md) (a *perpetual* discovery cycle). Shared logging / auth / SDK-stream code lives in `src/shared`.
 >
@@ -9,8 +9,10 @@ A *finite* spec→app compiler built with the [Claude Agent SDK](https://platfor
 ## Flow
 
 ```
-(a) short prompt ──[Initializer]──▶ artifacts/<slug>/spec.md   (you edit)
-(b) spec.md path ──▶ deterministic parse → steps.json          (auto; you may edit)
+artifacts/<slug>/spec.md  (you author — by hand or with a spec-writing skill)
+        │
+        ▼
+spec.md path ──▶ deterministic parse → steps.json              (auto; you may edit)
         │
         └─ for each STEP (skip if already "passing"):
               ┌─ outer RE-PLAN loop (1..maxReplanRounds) ──────────────────────┐
@@ -36,7 +38,6 @@ A run halts on the first step that still fails after exhausting its retry **and*
 
 | Agent | Role | Reads → Writes | Tools |
 |-------|------|----------------|-------|
-| **Initializer** | Expands a 1–4 sentence prompt into a draft `spec.md` scaffold | prompt → `spec.md` | File I/O |
 | **Planner** (per step) | Designs the step; can revise a defective contract on re-plan | `spec.md`, `lessons.md`, prior `build-status.md` → `contract.md`, `verify.json` | File I/O |
 | **Generator** (per step) | Implements against the contract, runs the gate, commits | `contract.md`, `lessons.md`, `verify.json`, `feedback.md` → app code, `build-status.md` | File, Bash, Git, Playwright MCP |
 | **Evaluator** (per step) | Runs the gate deterministically, then judges what the gate can't | `contract.md`, `verify.json`, `build-status.md` → `feedback.md` (`PASS`/`FAIL`/`REPLAN`) | File, Bash, Playwright MCP |
@@ -53,24 +54,54 @@ npm install
 # Install Playwright (used by generator + evaluator)
 npx playwright install chromium
 
-# (a) Scaffold a draft spec.md from a short prompt.
-#     Writes to ./kanban/artifacts/<auto-slug>/spec.md
-npx tsx src/harness/index.ts "Build a task management app with kanban boards" --output-dir ./kanban
+# Author a spec.md — by hand or with a spec-writing skill (e.g. a grill-me skill
+# to flesh out ideas interactively). See "Spec format" below for the structure.
+#   ./kanban/artifacts/kanban/spec.md
 
-# ... Review ./kanban/artifacts/<auto-slug>/spec.md ...
-# The scaffold flags guesses with (reviewer: confirm); refining the spec
-# interactively (e.g. a grill-me skill) pays off a lot here.
-
-# (b) Build from the spec.md. steps.json is derived on first run, then reused on resume.
-npx tsx src/harness/index.ts ./kanban/artifacts/<auto-slug>/spec.md
+# Build from the spec.md. steps.json is derived on first run, then reused on resume.
+npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
 ```
+
+## Spec format
+
+`spec.md` is yours to author — by hand or with a spec-writing skill. The harness parses it **deterministically** (no LLM) into `steps.json`, so it must contain a `## Implementation Plan` section listing the ordered steps:
+
+```markdown
+# [Project Name]
+
+## Overview
+Purpose, target users, value.
+
+## Tech Stack
+- Frontend / Backend / Database / Other
+
+## Implementation Plan
+
+### Step Project Setup
+One or more paragraphs describing what this step delivers.
+
+**Acceptance Criteria:**
+- concrete, testable criterion
+- another criterion
+
+### Step Authentication and Sessions
+...
+
+**Acceptance Criteria:**
+- ...
+```
+
+Parsing rules (see [`requirements-parser.ts`](requirements-parser.ts)):
+
+- A `## Implementation Plan` heading is required; steps are the `### Step <Title>` headings under it.
+- The word `Step` may be followed by `:`, `-`, `—`, or whitespace. A leading number (`### Step 1: Frontend`) is stripped — position assigns the index.
+- Each step needs a description **and** a `**Acceptance Criteria:**` block with ≥1 bullet.
+- Step titles must be distinct (they slugify into folder names like `01-project-setup`).
+- Prefer **vertical slices** (small end-to-end features) over horizontal layers, and make step 1 project setup. 4–8 steps is a good range; edit `steps.json` afterward to split, reorder, or skip.
 
 ## CLI
 
 ```
-# Scaffold a spec from a short prompt
-npx tsx src/harness/index.ts "<short prompt>" --output-dir <dir> [--name <slug>] [--force]
-
 # Build from a spec (derives steps.json if missing, then runs)
 npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
 ```
@@ -78,11 +109,9 @@ npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [o
 ### Options
 
 ```
---name <slug>            Override the auto-derived feature-bucket slug (scaffold only)
---output-dir <dir>       Application root. For the build flow, defaults to the
-                         ancestor of the spec's 'artifacts/' dir.
---force                  Scaffold: overwrite an existing spec.md.
-                         Build:    re-derive steps.json even if it exists.
+--output-dir <dir>       Application root. Defaults to the ancestor of the
+                         spec's 'artifacts/' dir, or to the bucket dir itself.
+--force                  Re-derive steps.json even if it already exists.
 --model <model>          Claude model to use
 --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
 --max-replan-rounds <n>  Max planner re-plans per step on a REPLAN verdict (default: 2)
@@ -119,7 +148,7 @@ Everything the harness produces lives under `--output-dir`:
 ├── artifacts/
 │   ├── run.log.txt.<ts>                      # structured run log (per invocation)
 │   └── <feature-slug>/                       # the "feature bucket"
-│       ├── spec.md                           # user-editable spec (from initializer)
+│       ├── spec.md                           # user-authored spec (hand-written or via a skill)
 │       ├── steps.json                        # ordered step plan (status tracked here)
 │       ├── lessons.md                        # distilled gotchas — persists across runs
 │       └── 01-project-setup/
@@ -161,7 +190,7 @@ Single-command checks (build, typecheck, lint, unit/integration tests, CLI asser
 
 ## How It Works
 
-1. **Scaffold** — the initializer drafts a `spec.md` (overview, tech stack, design direction, 4–8 steps). The bucket slug is auto-derived from your prompt (override with `--name`). Guesses are flagged `(reviewer: confirm)`. You refine it.
+1. **Author the spec** — you write `spec.md` (overview, tech stack, ordered Implementation Plan) by hand or with a spec-writing skill. See [Spec format](#spec-format) for the structure the parser expects.
 2. **Derive + build** — passing the spec path parses `spec.md` into `steps.json` (deterministic, no LLM) on first run, then reuses/resumes it. `--force` re-derives.
 3. **Per-step loop** — the planner writes `contract.md` + `verify.json` (reading `lessons.md`); the generator implements, runs the gate, and commits; the evaluator gates deterministically then judges. `FAIL` → the generator retries with feedback; `REPLAN` (or exhausting the retry budget) → the planner revises the contract; both bounded by `--max-step-rounds` and `--max-replan-rounds`.
 4. **Spend where it's hard** — after a failed first attempt the generator escalates to `--escalate-model` and/or races `--best-of-n` candidates in isolated git worktrees, keeping the one that passes the gate.
