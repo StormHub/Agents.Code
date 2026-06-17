@@ -1,0 +1,17 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e2]:
+    - banner [ref=e3]:
+      - generic [ref=e4]:
+        - heading "WeatherChat" [level=1] [ref=e5]
+        - generic [ref=e6]:
+          - button "°C" [ref=e7]
+          - generic [ref=e8]: Offline
+    - generic [ref=e12]:
+      - generic [ref=e13]: 🌤️
+      - heading "Welcome to WeatherChat" [level=2] [ref=e14]
+      - paragraph [ref=e15]: Ask me about weather in any location. Try "What's the weather in Tokyo?" or "Will it rain in London tomorrow?"
+    - contentinfo [ref=e16]:
+      - generic [ref=e18]:
+        - textbox "Ask about the weather..." [disabled] [ref=e19]
+        - button "Send" [disabled] [ref=e20]
+  - alert [ref=e21]
