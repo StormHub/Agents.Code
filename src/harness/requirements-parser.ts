@@ -25,7 +25,7 @@
  * Steps may use level-2 (`## Step ...`) or level-3 (`### Step ...`) headings.
  */
 
-import type { Step } from "../artifacts/types.js";
+import type { Step } from "./artifacts/types.js";
 
 const PLAN_HEADING = /^##\s+Implementation\s+Plan\s*$/im;
 const STEP_HEADING = /^#{2,3}\s+Step\s*[:—–-]?\s*(.+?)\s*$/i;

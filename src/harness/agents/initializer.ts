@@ -2,9 +2,10 @@ import { query } from "@anthropic-ai/claude-agent-sdk";
 import { readFileSync } from "fs";
 import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
-import { Logger } from "../utils/logger.js";
-import { type HarnessConfig, buildAgentEnv } from "../utils/config.js";
-import { consumeStream } from "../utils/stream.js";
+import { Logger } from "../../shared/logger.js";
+import type { HarnessConfig } from "../config.js";
+import { buildAgentEnv } from "../../shared/auth.js";
+import { consumeStream } from "../../shared/stream.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PROMPT_PATH = resolve(__dirname, "../prompts/initializer.md");
@@ -46,7 +47,7 @@ Do NOT initialize a repo, install dependencies, or write any application code.
       allowedTools: ["Read", "Edit", "Write", "Glob", "Grep", "Bash"],
       permissionMode: "bypassPermissions",
       allowDangerouslySkipPermissions: true,
-      maxBudgetUsd: config.maxBudgetUsd * 0.05,
+      maxBudgetUsd: config.maxBudgetUsd,
       settingSources: config.settingSources,
       env: buildAgentEnv(config.auth),
       stderr: (data: string) => log.stderr(data),
@@ -54,7 +55,7 @@ Do NOT initialize a repo, install dependencies, or write any application code.
     },
   });
 
-   var usage = await consumeStream(stream, "Initializer", log);
+  await consumeStream(stream, "Initializer", log);
 
-  log.info(`Initializer completed → ${featuresPath}`, usage);
+  log.info(`Initializer completed → ${featuresPath}`);
 }

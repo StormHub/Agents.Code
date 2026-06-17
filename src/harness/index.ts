@@ -2,8 +2,8 @@
 
 import { existsSync, readFileSync, mkdirSync, statSync } from "fs";
 import { resolve, dirname, isAbsolute, basename } from "path";
-import { loadConfig } from "./utils/config.js";
-import { Logger } from "./utils/logger.js";
+import { loadConfig } from "./config.js";
+import { Logger } from "../shared/logger.js";
 import { runHarness } from "./harness.js";
 import { deriveSteps } from "./steps.js";
 import { runInitializer } from "./agents/initializer.js";
@@ -30,8 +30,10 @@ function printUsage() {
                              the spec's 'artifacts/' dir, or to the bucket dir itself.
     --force                  (a) overwrite an existing spec.md; (b) re-derive steps.json
     --model <model>          Claude model to use
-    --max-step-rounds <n>    Per-step retry budget (default: 10)
-    --max-budget <usd>       Max budget in USD (default: 50)
+    --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
+    --max-replan-rounds <n>  Max planner re-plans per step on a REPLAN verdict (default: 2)
+    --escalate-model <model> Stronger model to switch to after a failed first attempt
+    --best-of-n <n>          Candidates to race in git worktrees once a step fails once (default: 1, off)
     --debug                  Enable debug mode
 
   Example:
@@ -144,7 +146,16 @@ async function cmdScaffold(shortPrompt: string, args: ParsedArgs): Promise<void>
     process.exit(1);
   }
 
-  const config = loadConfig({ outputDir, bucketDir });
+  const config = loadConfig({
+    maxStepFixRounds: args.flags["max-step-rounds"],
+    maxReplanRounds: args.flags["max-replan-rounds"],
+    bestOfN: args.flags["best-of-n"],
+    escalateModel: args.flags["escalate-model"],
+    maxBudgetUsd: args.flags["max-budget"],
+    outputDir,
+    bucketDir,
+    debug: args.bools.has("debug")
+  });
   mkdirSync(config.artifactsDir, { recursive: true });
 
   console.log(`Scaffolding feature bucket: ${slug}`);
@@ -177,10 +188,11 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
     outputDir,
     bucketDir,
     model: args.flags["model"],
-    maxStepFixRounds: args.flags["max-step-rounds"]
-      ? parseInt(args.flags["max-step-rounds"], 10)
-      : undefined,
-    maxBudgetUsd: args.flags["max-budget"] ? parseFloat(args.flags["max-budget"]) : undefined,
+    escalateModel: args.flags["escalate-model"],
+    maxStepFixRounds: args.flags["max-step-rounds"],
+    maxReplanRounds: args.flags["max-replan-rounds"],
+    bestOfN: args.flags["best-of-n"],
+    maxBudgetUsd: args.flags["max-budget"],
     debug: args.bools.has("debug"),
   });
 

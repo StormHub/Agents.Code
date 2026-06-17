@@ -1,23 +1,5 @@
-import type { SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { Query } from "@anthropic-ai/claude-agent-sdk";
 import type { Logger } from "./logger.js";
-
-type RawSDKUsage = Extract<SDKMessage, { type: "assistant" }>['message']['usage'];
-type RawUsage = Pick<RawSDKUsage, "input_tokens" | "output_tokens" | "cache_creation_input_tokens" | "cache_read_input_tokens">;
-type UsageData = {
-  [K in keyof RawUsage]: NonNullable<RawUsage[K]>;
-};
-
-function mergeUsageTotals(
-  current: UsageData,
-  next?: RawUsage,
-): UsageData {
-  return {
-    input_tokens: current.input_tokens + (next?.input_tokens ?? 0),
-    cache_creation_input_tokens: current.cache_creation_input_tokens + (next?.cache_creation_input_tokens ?? 0),
-    cache_read_input_tokens: current.cache_read_input_tokens + (next?.cache_read_input_tokens ?? 0),
-    output_tokens: current.output_tokens + (next?.output_tokens ?? 0),
-  };
-}
 
 /**
  * Consumes the SDK message stream, logging all relevant message types.
@@ -28,19 +10,13 @@ function mergeUsageTotals(
  * rather than propagated as a fatal error.
  */
 export async function consumeStream(
-  stream: AsyncIterable<SDKMessage>,
+  query: Query,
   agentName: string,
   log: Logger
-): Promise<UsageData> {
+): Promise<boolean> {
 
-  let totalUsage: UsageData = {
-    input_tokens: 0,
-    output_tokens: 0,
-    cache_creation_input_tokens: 0,
-    cache_read_input_tokens: 0,
-  };
-  
   let succeeded = false;
+  let usageCaptured = false;
 
   // SDKMessage type reference:
   //
@@ -81,7 +57,7 @@ export async function consumeStream(
   //   control_cancel_request — cancels a previously issued control_request
 
   try {
-    for await (const message of stream) {
+    for await (const message of query) {
 
       switch (message.type) {
         case "assistant": {
@@ -89,9 +65,9 @@ export async function consumeStream(
             log.error(`${agentName} [${message.session_id}] assistant error: ${message.error}`);
           }
           
-          if (message.message?.content) {
+          if (message.message.content) {
             for (const block of message.message.content) {
-              if (block.type === "text" && block.text?.trim()) {
+              if (block.type === "text" && block.text.trim()) {
                 log.agent(`${agentName} [${message.session_id}] ${block.text}`);
               } else if (block.type === "tool_use") {
                 // Log every tool invocation so we can see which skill tools are
@@ -105,19 +81,18 @@ export async function consumeStream(
             }
           }
 
-          totalUsage = mergeUsageTotals(totalUsage, message.message?.usage);
           break;
         }
 
         case "result": {
-          const { subtype, is_error, total_cost_usd, num_turns } = message;
+          const { subtype, is_error, total_cost_usd, num_turns, usage } = message;
 
           if (is_error || subtype !== "success") {
             const errors = message.subtype !== "success" ? message.errors : undefined;
             log.error(`${agentName} [${message.session_id}] result: ${subtype}`, {
               is_error,
               num_turns,
-              cost_usd: total_cost_usd,
+              total_cost_usd,
               errors: errors?.length ? errors : undefined,
             });
             if (errors?.length) {
@@ -129,20 +104,24 @@ export async function consumeStream(
             succeeded = true;
             log.info(`${agentName} [${message.session_id}] result: ${subtype}`, {
               num_turns,
-              cost_usd: total_cost_usd,
+              total_cost_usd,
             });
           }
 
-          totalUsage = mergeUsageTotals(totalUsage, message.usage);
+          log.info(`${agentName} [${message.session_id}]`, usage);
+
           break;
         }
 
         case "system": {
           if (message.subtype === "init") {
+            
             log.info(`${agentName} [${message.session_id}] session init`, {
               model: message.model,
               tools: message.tools,
               skills: message.skills,
+              mcp_servers: message.mcp_servers,
+              plugins: message.plugins,
             });
           }
           break;
@@ -199,5 +178,5 @@ export async function consumeStream(
     }
   }
 
-  return totalUsage;
+  return succeeded;
 }
