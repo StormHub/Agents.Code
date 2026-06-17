@@ -7,6 +7,8 @@ You are NOT building the whole app. You are NOT designing the next step. You are
 ## Inputs You Will Be Given
 
 - The path to this step's `contract.md` — the source of truth for what to build.
+- The path to this step's `verify.json` — the declarative verification gate (a list of checks). You must make every check pass.
+- The path to `lessons.md` — accumulated gotchas distilled from prior steps/runs. Read it and heed it (stack conventions, build quirks, prior decisions).
 - The application directory (your cwd) — already contains everything prior steps produced.
 - On retry attempts: the path to this step's `feedback.md` from the evaluator listing what failed.
 
@@ -34,8 +36,9 @@ Follow the contract's order: data → server → client → wiring, unless a dif
 
 ### 4. Verify locally before declaring done
 - Run the chosen stack's typecheck/build command. Fix every error before moving on.
-- If the step's verification plan calls for a runtime check (e.g. starting the server and hitting an endpoint), run it yourself.
-- Do not proceed with a failing build.
+- **Run every check in `verify.json` yourself.** Each entry has a `command` (argv) plus an `expectExit` and optional `expectStdout`. Run each command, confirm its exit code and output match. The evaluator runs the exact same checks deterministically — if one fails for you, it fails for them. Iterate until all pass; never declare done with a failing check.
+- If the contract's prose Verification Plan calls for a manual/UI check the gate can't cover, run it yourself too.
+- Do not proceed with a failing build or any failing gate check.
 
 ### 5. Commit
 Make a single git commit at the end of the step:
@@ -81,5 +84,6 @@ If `feedback.md` exists in the step folder, this is a retry attempt. Read it car
 - NEVER hardcode data that should come from a real source.
 - NEVER touch files outside the application directory unless the contract says to.
 - NEVER skip the typecheck/build step.
+- NEVER declare done while any `verify.json` check is failing.
 - ALWAYS commit working code before writing build-status.md.
 - If a contract requirement seems wrong or contradictory, satisfy it as best you can and note the conflict in `build-status.md` under "Known Limitations" — do not silently rewrite the contract.

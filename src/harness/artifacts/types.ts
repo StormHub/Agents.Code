@@ -28,11 +28,17 @@ export const SPEC_FILENAME = "spec.md";
 /** The derived step plan, stored inside the feature bucket. */
 export const STEPS_JSON_FILENAME = "steps.json";
 
+/** Accumulated, trace-distilled lessons, stored inside the feature bucket.
+ * Persists across steps AND across runs — it is never wiped by the harness. */
+export const LESSONS_FILENAME = "lessons.md";
+
 /** Per-step artifact filenames (relative to a step's folder). */
 export const STEP_FILES = {
   CONTRACT: "contract.md",
   BUILD_STATUS: "build-status.md",
   FEEDBACK: "feedback.md",
+  /** Declarative gate the planner emits and the evaluator runs deterministically. */
+  VERIFY_SPEC: "verify.json",
 } as const;
 
 /** Path to the spec file inside a feature bucket. */
@@ -43,6 +49,11 @@ export function specPath(bucketDir: string): string {
 /** Path to steps.json inside a feature bucket. */
 export function stepsJsonPath(bucketDir: string): string {
   return resolve(bucketDir, STEPS_JSON_FILENAME);
+}
+
+/** Path to the accumulated lessons file inside a feature bucket. */
+export function lessonsPath(bucketDir: string): string {
+  return resolve(bucketDir, LESSONS_FILENAME);
 }
 
 /** Build the canonical folder name for a step (e.g. "01-project-setup"). */
@@ -65,6 +76,10 @@ export function stepBuildStatusPath(bucketDir: string, step: Pick<Step, "index" 
 
 export function stepFeedbackPath(bucketDir: string, step: Pick<Step, "index" | "slug">): string {
   return resolve(stepDir(bucketDir, step), STEP_FILES.FEEDBACK);
+}
+
+export function stepVerifySpecPath(bucketDir: string, step: Pick<Step, "index" | "slug">): string {
+  return resolve(stepDir(bucketDir, step), STEP_FILES.VERIFY_SPEC);
 }
 
 /** Per-(step, agent, attempt) folder for MCP side artifacts (screenshots, traces). */

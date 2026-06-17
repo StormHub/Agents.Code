@@ -30,7 +30,10 @@ function printUsage() {
                              the spec's 'artifacts/' dir, or to the bucket dir itself.
     --force                  (a) overwrite an existing spec.md; (b) re-derive steps.json
     --model <model>          Claude model to use
-    --max-step-rounds <n>    Per-step retry budget (default: 10)
+    --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
+    --max-replan-rounds <n>  Max planner re-plans per step on a REPLAN verdict (default: 2)
+    --escalate-model <model> Stronger model to switch to after a failed first attempt
+    --best-of-n <n>          Candidates to race in git worktrees once a step fails once (default: 1, off)
     --debug                  Enable debug mode
 
   Example:
@@ -143,12 +146,15 @@ async function cmdScaffold(shortPrompt: string, args: ParsedArgs): Promise<void>
     process.exit(1);
   }
 
-  const config = loadConfig({ 
+  const config = loadConfig({
     maxStepFixRounds: args.flags["max-step-rounds"],
+    maxReplanRounds: args.flags["max-replan-rounds"],
+    bestOfN: args.flags["best-of-n"],
+    escalateModel: args.flags["escalate-model"],
     maxBudgetUsd: args.flags["max-budget"],
-    outputDir, 
-    bucketDir, 
-    debug: args.bools.has("debug") 
+    outputDir,
+    bucketDir,
+    debug: args.bools.has("debug")
   });
   mkdirSync(config.artifactsDir, { recursive: true });
 
@@ -182,7 +188,10 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
     outputDir,
     bucketDir,
     model: args.flags["model"],
+    escalateModel: args.flags["escalate-model"],
     maxStepFixRounds: args.flags["max-step-rounds"],
+    maxReplanRounds: args.flags["max-replan-rounds"],
+    bestOfN: args.flags["best-of-n"],
     maxBudgetUsd: args.flags["max-budget"],
     debug: args.bools.has("debug"),
   });
