@@ -25,6 +25,10 @@ export interface StepsFile {
 /** The user-authored spec markdown, stored inside the feature bucket. */
 export const SPEC_FILENAME = "spec.md";
 
+/** The LLM-derived implementation plan (structured markdown the parser consumes),
+ * stored inside the feature bucket. Reviewable/editable; regenerated on --force. */
+export const REQUIREMENTS_FILENAME = "requirements.md";
+
 /** The derived step plan, stored inside the feature bucket. */
 export const STEPS_JSON_FILENAME = "steps.json";
 
@@ -44,6 +48,11 @@ export const STEP_FILES = {
 /** Path to the spec file inside a feature bucket. */
 export function specPath(bucketDir: string): string {
   return resolve(bucketDir, SPEC_FILENAME);
+}
+
+/** Path to the derived requirements.md inside a feature bucket. */
+export function requirementsPath(bucketDir: string): string {
+  return resolve(bucketDir, REQUIREMENTS_FILENAME);
 }
 
 /** Path to steps.json inside a feature bucket. */

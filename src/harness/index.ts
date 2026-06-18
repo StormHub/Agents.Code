@@ -23,7 +23,7 @@ function printUsage() {
   Options:
     --output-dir <dir>       Application root. Defaults to the ancestor of the
                              spec's 'artifacts/' dir, or to the bucket dir itself.
-    --force                  Re-derive steps.json even if it already exists
+    --force                  Re-derive requirements.md (LLM) and steps.json even if they exist
     --model <model>          Claude model to use
     --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
     --max-replan-rounds <n>  Max planner re-plans per step on a REPLAN verdict (default: 2)
@@ -130,11 +130,10 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
   if (needsDerivation) {
     console.log(`Deriving plan from ${resolvedSpec}`);
     const planLog = new Logger("plan", resolve(config.artifactsDir, "plan.log.txt"));
-    deriveSteps({
-      featuresMarkdown: specMarkdown,
+    await deriveSteps({
       config,
       log: planLog,
-      force: true,
+      force: args.bools.has("force"),
     });
   } else {
     console.log(`Using existing plan: ${stepsPath}`);

@@ -8,7 +8,7 @@ Autonomous coding systems built on the [Claude Agent SDK](https://platform.claud
 
 | Subsystem | Shape | What it does | Docs |
 |-----------|-------|--------------|------|
-| **`src/harness`** | *finite* pipeline | spec → steps → plan / generate / evaluate → done. Compiles an editable feature spec into a working app, one verified step at a time. | **[src/harness/README.md](src/harness/README.md)** |
+| **`src/harness`** | *finite* pipeline | spec → requirements → steps → plan / generate / evaluate → done. Compiles an editable feature spec into a working app, one verified step at a time. | **[src/harness/README.md](src/harness/README.md)** |
 | **`src/loop`** | *perpetual* cycle | discover → distribute → verify → record → decide. A discovery-driven operating discipline kept separate from the spec→app compiler. | **[src/loop/README.md](src/loop/README.md)** |
 
 `src/shared` holds the common core both reuse — logging, auth, and SDK-stream consumption — and is otherwise dependency-free between the two.
@@ -29,7 +29,8 @@ npm install
 # Install Playwright (used by the harness's generator + evaluator)
 npx playwright install chromium
 
-# Author a spec.md (by hand or with a spec-writing skill), then build from it
+# Author a free-form spec.md (by hand or with a spec-writing skill), then build.
+# The harness expands it into requirements.md → steps.json, then builds step by step.
 #   ./kanban/artifacts/kanban/spec.md   (see src/harness/README.md → "Spec format")
 npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
 ```

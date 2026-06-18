@@ -1,6 +1,6 @@
 # src/harness — Step-by-Step Autonomous Coding Harness
 
-A *finite* spec→app compiler built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes an editable feature `spec.md`, derives an ordered step plan, then builds the application **one step at a time** with a planner → generator → evaluator loop per step. The harness is stack-agnostic — the tech stack is chosen in `spec.md`.
+A *finite* spec→app compiler built with the [Claude Agent SDK](https://platform.claude.com/docs/en/agent-sdk/overview). Takes an editable feature `spec.md`, expands it into an ordered step plan, then builds the application **one step at a time** with a planner → generator → evaluator loop per step. The harness is stack-agnostic — the tech stack is chosen in `spec.md`.
 
 > Part of [Agents.Code](../../README.md). The sibling subsystem is [`src/loop`](../loop/README.md) (a *perpetual* discovery cycle). Shared logging / auth / SDK-stream code lives in `src/shared`.
 >
@@ -10,9 +10,9 @@ A *finite* spec→app compiler built with the [Claude Agent SDK](https://platfor
 
 ```
 artifacts/<slug>/spec.md  (you author — by hand or with a spec-writing skill)
-        │
+        │  [Requirements] LLM expands spec.md ─▶ requirements.md   (structured plan; you may edit)
         ▼
-spec.md path ──▶ deterministic parse → steps.json              (auto; you may edit)
+requirements.md ──▶ deterministic parse → steps.json             (auto; you may edit)
         │
         └─ for each STEP (skip if already "passing"):
               ┌─ outer RE-PLAN loop (1..maxReplanRounds) ──────────────────────┐
@@ -38,6 +38,7 @@ A run halts on the first step that still fails after exhausting its retry **and*
 
 | Agent | Role | Reads → Writes | Tools |
 |-------|------|----------------|-------|
+| **Requirements** (once) | Expands the free-form `spec.md` into a structured, ordered implementation plan | `spec.md` → `requirements.md` | File I/O |
 | **Planner** (per step) | Designs the step; can revise a defective contract on re-plan | `spec.md`, `lessons.md`, prior `build-status.md` → `contract.md`, `verify.json` | File I/O |
 | **Generator** (per step) | Implements against the contract, runs the gate, commits | `contract.md`, `lessons.md`, `verify.json`, `feedback.md` → app code, `build-status.md` | File, Bash, Git, Playwright MCP |
 | **Evaluator** (per step) | Runs the gate deterministically, then judges what the gate can't | `contract.md`, `verify.json`, `build-status.md` → `feedback.md` (`PASS`/`FAIL`/`REPLAN`) | File, Bash, Playwright MCP |
@@ -55,16 +56,22 @@ npm install
 npx playwright install chromium
 
 # Author a spec.md — by hand or with a spec-writing skill (e.g. a grill-me skill
-# to flesh out ideas interactively). See "Spec format" below for the structure.
+# to flesh out ideas interactively). It's free-form; see "Spec format" below.
 #   ./kanban/artifacts/kanban/spec.md
 
-# Build from the spec.md. steps.json is derived on first run, then reused on resume.
+# Build from the spec.md. On first run the Requirements agent expands it into
+# requirements.md, which is parsed into steps.json — then reused on resume.
 npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
 ```
 
 ## Spec format
 
-`spec.md` is yours to author — by hand or with a spec-writing skill. The harness parses it **deterministically** (no LLM) into `steps.json`, so it must contain a `## Implementation Plan` section listing the ordered steps:
+Step derivation is two-stage:
+
+1. **`spec.md` → `requirements.md`** — the **Requirements** agent (LLM) expands your spec into a structured implementation plan.
+2. **`requirements.md` → `steps.json`** — a **deterministic** parser (no LLM) extracts the ordered step queue.
+
+**`spec.md`** is yours to author — by hand or with a spec-writing skill — and is **free-form**. There's no required structure; describe the product well and the Requirements agent does the planning. A useful shape:
 
 ```markdown
 # [Project Name]
@@ -73,8 +80,18 @@ npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
 Purpose, target users, value.
 
 ## Tech Stack
-- Frontend / Backend / Database / Other
+- Frontend / Backend / Database / Other   (name exact frameworks — the plan honors them)
 
+## Features
+- The capabilities you want, in as much detail as you like.
+
+## Design Direction
+Visual identity, references, constraints.
+```
+
+**`requirements.md`** is the **auto-generated** intermediate (written next to `spec.md`). You can read and edit it; it is regenerated only when missing or on `--force`, so hand-edits survive. It must keep the structure the parser consumes (see [`requirements-parser.ts`](requirements-parser.ts)):
+
+```markdown
 ## Implementation Plan
 
 ### Step Project Setup
@@ -91,13 +108,13 @@ One or more paragraphs describing what this step delivers.
 - ...
 ```
 
-Parsing rules (see [`requirements-parser.ts`](requirements-parser.ts)):
+Parsing rules:
 
 - A `## Implementation Plan` heading is required; steps are the `### Step <Title>` headings under it.
 - The word `Step` may be followed by `:`, `-`, `—`, or whitespace. A leading number (`### Step 1: Frontend`) is stripped — position assigns the index.
 - Each step needs a description **and** a `**Acceptance Criteria:**` block with ≥1 bullet.
 - Step titles must be distinct (they slugify into folder names like `01-project-setup`).
-- Prefer **vertical slices** (small end-to-end features) over horizontal layers, and make step 1 project setup. 4–8 steps is a good range; edit `steps.json` afterward to split, reorder, or skip.
+- Prefer **vertical slices** (small end-to-end features) over horizontal layers, with step 1 = project setup; 4–8 steps is a good range. Edit `requirements.md` (then `--force`) or `steps.json` directly to split, reorder, or skip.
 
 ## CLI
 
@@ -111,7 +128,7 @@ npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [o
 ```
 --output-dir <dir>       Application root. Defaults to the ancestor of the
                          spec's 'artifacts/' dir, or to the bucket dir itself.
---force                  Re-derive steps.json even if it already exists.
+--force                  Re-derive requirements.md (LLM) and steps.json even if they exist.
 --model <model>          Claude model to use
 --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
 --max-replan-rounds <n>  Max planner re-plans per step on a REPLAN verdict (default: 2)
@@ -149,7 +166,8 @@ Everything the harness produces lives under `--output-dir`:
 │   ├── run.log.txt.<ts>                      # structured run log (per invocation)
 │   └── <feature-slug>/                       # the "feature bucket"
 │       ├── spec.md                           # user-authored spec (hand-written or via a skill)
-│       ├── steps.json                        # ordered step plan (status tracked here)
+│       ├── requirements.md                   # LLM-expanded implementation plan (editable; re-gen on --force)
+│       ├── steps.json                        # ordered step plan parsed from requirements.md (status tracked here)
 │       ├── lessons.md                        # distilled gotchas — persists across runs
 │       └── 01-project-setup/
 │           ├── contract.md                   # planner's definition of done
@@ -190,8 +208,8 @@ Single-command checks (build, typecheck, lint, unit/integration tests, CLI asser
 
 ## How It Works
 
-1. **Author the spec** — you write `spec.md` (overview, tech stack, ordered Implementation Plan) by hand or with a spec-writing skill. See [Spec format](#spec-format) for the structure the parser expects.
-2. **Derive + build** — passing the spec path parses `spec.md` into `steps.json` (deterministic, no LLM) on first run, then reuses/resumes it. `--force` re-derives.
+1. **Author the spec** — you write a free-form `spec.md` (overview, tech stack, features, design) by hand or with a spec-writing skill. See [Spec format](#spec-format).
+2. **Derive + build** — on first run the Requirements agent (LLM) expands `spec.md` into a structured `requirements.md`, which the deterministic parser turns into `steps.json`; both are then reused/resumed. `--force` re-derives both (regenerating `requirements.md`); hand-edits to `requirements.md` survive otherwise.
 3. **Per-step loop** — the planner writes `contract.md` + `verify.json` (reading `lessons.md`); the generator implements, runs the gate, and commits; the evaluator gates deterministically then judges. `FAIL` → the generator retries with feedback; `REPLAN` (or exhausting the retry budget) → the planner revises the contract; both bounded by `--max-step-rounds` and `--max-replan-rounds`.
 4. **Spend where it's hard** — after a failed first attempt the generator escalates to `--escalate-model` and/or races `--best-of-n` candidates in isolated git worktrees, keeping the one that passes the gate.
 5. **Learn** — after each step the distiller folds durable lessons into `lessons.md` for every later step and future run.
