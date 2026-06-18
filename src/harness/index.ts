@@ -33,7 +33,7 @@ function printUsage() {
 
   Example:
     # ... author ./kanban/artifacts/kanban/spec.md (by hand or via a skill) ...
-    npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
+    npx tsx src/harness/index.ts ./kanban/artifacts/spec.md
   `);
 }
 
