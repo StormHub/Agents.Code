@@ -35,20 +35,20 @@ export async function runStepGenerator(
   options: GeneratorOptions = {},
 ): Promise<void> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const bucketDir = resolve(config.bucketDir);
+  const root = resolve(config.artifactsDir);
   const outputDir = options.cwd ? resolve(options.cwd) : resolve(config.outputDir);
   const model = options.model ?? config.model;
 
-  const folder = stepDir(bucketDir, step);
-  const contractPath = stepContractPath(bucketDir, step);
-  const feedbackPath = stepFeedbackPath(bucketDir, step);
-  const buildStatusPath = stepBuildStatusPath(bucketDir, step);
-  const verifySpecPath = stepVerifySpecPath(bucketDir, step);
-  const lessons = lessonsPath(bucketDir);
+  const folder = stepDir(root, step);
+  const contractPath = stepContractPath(root, step);
+  const feedbackPath = stepFeedbackPath(root, step);
+  const buildStatusPath = stepBuildStatusPath(root, step);
+  const verifySpecPath = stepVerifySpecPath(root, step);
+  const lessons = lessonsPath(root);
 
   const isRetry = attempt > 1 && existsSync(feedbackPath);
 
-  const mcpDir = stepMcpDir(bucketDir, step, "generator", attempt);
+  const mcpDir = stepMcpDir(root, step, "generator", attempt);
 
   log.agent(
     `Starting step generator — step ${step.index} (${step.slug}), attempt ${attempt}`,

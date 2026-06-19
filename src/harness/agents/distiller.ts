@@ -18,7 +18,7 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/distiller.md");
 
 /**
  * Trace-distillation step ("evolvable" loop): fold any durable, reusable lesson from
- * a completed step's trace into the bucket-level lessons.md. Best-effort — callers
+ * a completed step's trace into the root-level lessons.md. Best-effort — callers
  * should guard so a distiller failure never aborts the build.
  */
 export async function runStepDistiller(
@@ -27,12 +27,12 @@ export async function runStepDistiller(
   log: Logger,
 ): Promise<void> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const bucketDir = resolve(config.bucketDir);
+  const root = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
-  const lessons = lessonsPath(bucketDir);
-  const feedbackPath = stepFeedbackPath(bucketDir, step);
-  const buildStatusPath = stepBuildStatusPath(bucketDir, step);
+  const lessons = lessonsPath(root);
+  const feedbackPath = stepFeedbackPath(root, step);
+  const buildStatusPath = stepBuildStatusPath(root, step);
 
   // Nothing to distill from if neither trace artifact exists.
   if (!existsSync(feedbackPath) && !existsSync(buildStatusPath)) {

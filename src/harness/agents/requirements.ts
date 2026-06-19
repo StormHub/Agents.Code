@@ -18,11 +18,11 @@ const PROMPT_PATH = resolve(__dirname, "../prompts/requirements.md");
  */
 export async function runRequirements(config: HarnessConfig, log: Logger): Promise<void> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const bucketDir = resolve(config.bucketDir);
+  const root = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
-  const spec = specPath(bucketDir);
-  const requirements = requirementsPath(bucketDir);
+  const spec = specPath(root);
+  const requirements = requirementsPath(root);
 
   log.agent("Starting requirements agent (spec.md → requirements.md)", { model: config.model });
 

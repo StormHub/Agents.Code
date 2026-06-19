@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-import { existsSync, readFileSync, mkdirSync, statSync } from "fs";
-import { resolve, dirname, isAbsolute, basename } from "path";
+import { existsSync, readFileSync, mkdirSync } from "fs";
+import { resolve } from "path";
 import { loadConfig } from "./config.js";
 import { Logger } from "../shared/logger.js";
 import { runHarness } from "./harness.js";
 import { deriveSteps } from "./steps.js";
-import { stepsJsonPath } from "./artifacts/types.js";
+import { specPath, stepsJsonPath } from "./artifacts/types.js";
 
 function printUsage() {
   console.log(`
@@ -14,15 +14,17 @@ function printUsage() {
 
   Build an application from a spec.md (derives steps.json if missing, then runs):
 
-      npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
+      npx tsx src/harness/index.ts <output-dir> [--artifacts-dir <dir>] [--force] [options]
 
-  Author the spec.md yourself — by hand or with a spec-writing skill. The spec's
-  parent directory is the "feature bucket"; steps.json and all step artifacts
-  live alongside it.
+  Author the spec.md yourself — by hand or with a spec-writing skill — at
+  <output-dir>/artifacts/spec.md (or <artifacts-dir>/spec.md). steps.json,
+  requirements.md, lessons.md, the logs, and one folder per step all live there,
+  side by side.
 
   Options:
-    --output-dir <dir>       Application root. Defaults to the ancestor of the
-                             spec's 'artifacts/' dir, or to the bucket dir itself.
+    <output-dir>             Application code root (REQUIRED) — where generated code is built.
+    --artifacts-dir <dir>    Artifacts root (spec, plan, logs, step folders).
+                             Defaults to <output-dir>/artifacts.
     --force                  Re-derive requirements.md (LLM) and steps.json even if they exist
     --model <model>          Claude model to use
     --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
@@ -32,8 +34,8 @@ function printUsage() {
     --debug                  Enable debug mode
 
   Example:
-    # ... author ./kanban/artifacts/kanban/spec.md (by hand or via a skill) ...
-    npx tsx src/harness/index.ts ./kanban/artifacts/spec.md
+    # ... author ./codeoutput/artifacts/spec.md (by hand or via a skill) ...
+    npx tsx src/harness/index.ts ./codeoutput
   `);
 }
 
@@ -79,41 +81,10 @@ function parseArgs(args: string[]): ParsedArgs {
   return { positional, flags, bools };
 }
 
-/**
- * Given a spec path and optional --output-dir, infer the outputDir (application root).
- * Rule: if the spec sits under some `…/artifacts/<slug>/spec.md`, outputDir is the
- * parent of that `artifacts` dir. Otherwise fall back to --output-dir, else the bucket dir.
- */
-function inferOutputDir(bucketDir: string, explicit?: string): string {
-  if (explicit) return resolve(explicit);
-  const parent = dirname(bucketDir);
-  if (basename(parent) === "artifacts") return dirname(parent);
-  return bucketDir;
-}
-
-async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<void> {
-  const resolvedSpec = isAbsolute(specPathArg) ? specPathArg : resolve(process.cwd(), specPathArg);
-
-  if (!existsSync(resolvedSpec)) {
-    console.error(`\n  Error: File not found: ${resolvedSpec}\n`);
-    process.exit(1);
-  }
-  if (!statSync(resolvedSpec).isFile()) {
-    console.error(`\n  Error: Not a file: ${resolvedSpec}\n`);
-    process.exit(1);
-  }
-  const specMarkdown = readFileSync(resolvedSpec, "utf-8");
-  if (!specMarkdown.trim()) {
-    console.error(`\n  Error: Spec file is empty: ${resolvedSpec}\n`);
-    process.exit(1);
-  }
-
-  const bucketDir = dirname(resolvedSpec);
-  const outputDir = inferOutputDir(bucketDir, args.flags["output-dir"]);
-
+async function cmdBuild(outputDirArg: string, args: ParsedArgs): Promise<void> {
   const config = loadConfig({
-    outputDir,
-    bucketDir,
+    outputDir: resolve(outputDirArg),
+    artifactsDir: args.flags["artifacts-dir"] ? resolve(args.flags["artifacts-dir"]) : undefined,
     model: args.flags["model"],
     escalateModel: args.flags["escalate-model"],
     maxStepFixRounds: args.flags["max-step-rounds"],
@@ -123,12 +94,22 @@ async function cmdBuildFromSpec(specPathArg: string, args: ParsedArgs): Promise<
     debug: args.bools.has("debug"),
   });
 
+  // The artifacts root is the single home for spec.md, the plan, logs, and step
+  // folders. The spec is authored in place at <artifactsDir>/spec.md — by convention.
   mkdirSync(config.artifactsDir, { recursive: true });
+  const spec = specPath(config.artifactsDir);
+  if (!existsSync(spec) || !readFileSync(spec, "utf-8").trim()) {
+    console.error(
+      `\n  Error: No spec found at ${spec}.\n` +
+        `  Author your spec.md there (by hand or with a spec-writing skill), then re-run.\n`,
+    );
+    process.exit(1);
+  }
 
-  const stepsPath = stepsJsonPath(bucketDir);
+  const stepsPath = stepsJsonPath(config.artifactsDir);
   const needsDerivation = !existsSync(stepsPath) || args.bools.has("force");
   if (needsDerivation) {
-    console.log(`Deriving plan from ${resolvedSpec}`);
+    console.log(`Deriving plan from ${spec}`);
     const planLog = new Logger("plan", resolve(config.artifactsDir, "plan.log.txt"));
     await deriveSteps({
       config,
@@ -147,22 +128,15 @@ async function main() {
   const first = args.positional[0];
 
   try {
-    if (first?.endsWith(".md")) {
-      if (args.positional.length > 1) {
-        console.error(`\n  Error: Expected a single .md path. Got extra args: ${args.positional.slice(1).join(" ")}.\n`);
-        process.exit(1);
-      }
-      await cmdBuildFromSpec(first, args);
-    } else if (first) {
-      printUsage();
-      console.error(
-        `\n  Error: Provide a path to a spec.md. Author one by hand or with a spec-writing skill, then pass its path.\n`,
-      );
-      process.exit(1);
-    } else {
+    if (!first) {
       printUsage();
       process.exit(1);
     }
+    if (args.positional.length > 1) {
+      console.error(`\n  Error: Expected a single <output-dir>. Got extra args: ${args.positional.slice(1).join(" ")}.\n`);
+      process.exit(1);
+    }
+    await cmdBuild(first, args);
   } catch (error) {
     console.error(`Fatal error: ${error instanceof Error ? error.message : String(error)}`);
     if (error instanceof Error && error.stack) {

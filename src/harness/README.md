@@ -9,7 +9,7 @@ A *finite* spec→app compiler built with the [Claude Agent SDK](https://platfor
 ## Flow
 
 ```
-artifacts/<slug>/spec.md  (you author — by hand or with a spec-writing skill)
+<artifacts-root>/spec.md  (you author here — by hand or with a spec-writing skill)
         │  [Requirements] LLM expands spec.md ─▶ requirements.md   (structured plan; you may edit)
         ▼
 requirements.md ──▶ deterministic parse → steps.json             (auto; you may edit)
@@ -42,9 +42,9 @@ A run halts on the first step that still fails after exhausting its retry **and*
 | **Planner** (per step) | Designs the step; can revise a defective contract on re-plan | `spec.md`, `lessons.md`, prior `build-status.md` → `contract.md`, `verify.json` | File I/O |
 | **Generator** (per step) | Implements against the contract, runs the gate, commits | `contract.md`, `lessons.md`, `verify.json`, `feedback.md` → app code, `build-status.md` | File, Bash, Git, Playwright MCP |
 | **Evaluator** (per step) | Runs the gate deterministically, then judges what the gate can't | `contract.md`, `verify.json`, `build-status.md` → `feedback.md` (`PASS`/`FAIL`/`REPLAN`) | File, Bash, Playwright MCP |
-| **Distiller** (per step) | Folds durable, reusable lessons from the step trace into bucket memory | `feedback.md`, `build-status.md` → `lessons.md` | File I/O |
+| **Distiller** (per step) | Folds durable, reusable lessons from the step trace into the root `lessons.md` | `feedback.md`, `build-status.md` → `lessons.md` | File I/O |
 
-Agents never talk directly — they hand off through files in the feature bucket.
+Agents never talk directly — they hand off through files in the artifacts root.
 
 ## Quick Start
 
@@ -57,11 +57,13 @@ npx playwright install chromium
 
 # Author a spec.md — by hand or with a spec-writing skill (e.g. a grill-me skill
 # to flesh out ideas interactively). It's free-form; see "Spec format" below.
-#   ./kanban/artifacts/kanban/spec.md
+# By convention it lives in the artifacts root:
+#   ./codeoutput/artifacts/spec.md
 
-# Build from the spec.md. On first run the Requirements agent expands it into
-# requirements.md, which is parsed into steps.json — then reused on resume.
-npx tsx src/harness/index.ts ./kanban/artifacts/kanban/spec.md
+# Build by pointing the harness at the output (code) dir. On first run the
+# Requirements agent expands the spec into requirements.md, which is parsed into
+# steps.json — then reused on resume.
+npx tsx src/harness/index.ts ./codeoutput
 ```
 
 ## Spec format
@@ -119,15 +121,17 @@ Parsing rules:
 ## CLI
 
 ```
-# Build from a spec (derives steps.json if missing, then runs)
-npx tsx src/harness/index.ts <path/to/spec.md> [--output-dir <dir>] [--force] [options]
+# Build from a spec (derives steps.json if missing, then runs).
+# The spec is read in place from <output-dir>/artifacts/spec.md (or <artifacts-dir>/spec.md).
+npx tsx src/harness/index.ts <output-dir> [--artifacts-dir <dir>] [--force] [options]
 ```
 
 ### Options
 
 ```
---output-dir <dir>       Application root. Defaults to the ancestor of the
-                         spec's 'artifacts/' dir, or to the bucket dir itself.
+<output-dir>             Application code root (REQUIRED) — where generated code is built.
+--artifacts-dir <dir>    Artifacts root (spec, plan, logs, step folders).
+                         Defaults to <output-dir>/artifacts.
 --force                  Re-derive requirements.md (LLM) and steps.json even if they exist.
 --model <model>          Claude model to use
 --max-step-rounds <n>    Per-step generator→evaluator retry budget (default: 10)
@@ -158,32 +162,36 @@ Any run option can be set in `.env` instead of on the CLI. CLI flags take preced
 
 ## Artifacts Layout
 
-Everything the harness produces lives under `--output-dir`:
+Generated application **code** is built under `--output-dir`. Everything the harness
+produces — the spec, plan, logs, and per-step work — lives flat in the **artifacts
+root** (`--artifacts-dir`, default `<output-dir>/artifacts`):
 
 ```
-<output-dir>/
-├── artifacts/
-│   ├── run.log.txt.<ts>                      # structured run log (per invocation)
-│   └── <feature-slug>/                       # the "feature bucket"
-│       ├── spec.md                           # user-authored spec (hand-written or via a skill)
-│       ├── requirements.md                   # LLM-expanded implementation plan (editable; re-gen on --force)
-│       ├── steps.json                        # ordered step plan parsed from requirements.md (status tracked here)
-│       ├── lessons.md                        # distilled gotchas — persists across runs
-│       └── 01-project-setup/
-│           ├── contract.md                   # planner's definition of done
-│           ├── verify.json                   # planner's declarative verification gate
-│           ├── build-status.md               # generator's report
-│           ├── feedback.md                   # evaluator's verdict (PASS/FAIL/REPLAN)
-│           ├── contract-1.md, verify.json-1  # archived copies from a prior re-plan
-│           └── mcp/                          # Playwright MCP side artifacts
-│               ├── generator-attempt-1/
-│               └── evaluator-round-1/
+<output-dir>/                                 # generated application code (REQUIRED)
 └── <your application code>                   # built here, committed to git by the generator
+
+<artifacts-dir>/  (default <output-dir>/artifacts)
+├── spec.md                                   # user-authored spec (authored here by convention)
+├── requirements.md                           # LLM-expanded implementation plan (editable; re-gen on --force)
+├── steps.json                                # ordered step plan parsed from requirements.md (status tracked here)
+├── lessons.md                                # distilled gotchas — persists across runs
+├── plan.log.txt.<ts>                         # requirements/plan derivation log
+├── orchestrator.log.txt.<ts>                 # top-level run log (per invocation)
+└── 01-project-setup/                         # one folder per step — all its files live here
+    ├── contract.md                           # planner's definition of done
+    ├── verify.json                           # planner's declarative verification gate
+    ├── build-status.md                       # generator's report
+    ├── feedback.md                           # evaluator's verdict (PASS/FAIL/REPLAN)
+    ├── run.log.txt.<ts>                       # per-step run log
+    ├── contract-1.md, verify-1.json           # archived copies from a prior re-plan
+    └── mcp/                                   # Playwright MCP side artifacts
+        ├── generator-attempt-1/
+        └── evaluator-round-1/
 ```
 
 `steps.json` is the source of truth for progress. Statuses: `pending` → `in_progress` → `passing` | `failed`. Edit it between runs to skip, retry, or re-order steps.
 
-`lessons.md` lives at the bucket level and is **never wiped** — it accumulates reusable gotchas (stack conventions, build quirks, decisions to respect) across steps and across runs. Multiple feature buckets can coexist under `artifacts/`.
+`lessons.md` lives in the artifacts root and is **never wiped** — it accumulates reusable gotchas (stack conventions, build quirks, decisions to respect) across steps and across runs. Each artifacts root holds a single feature.
 
 ## The verification gate (`verify.json`)
 

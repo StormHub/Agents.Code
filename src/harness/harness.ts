@@ -51,22 +51,20 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
 
   const artifactsDir = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
-  const bucketDir = resolve(config.bucketDir);
   mkdirSync(artifactsDir, { recursive: true });
   mkdirSync(outputDir, { recursive: true });
-  mkdirSync(bucketDir, { recursive: true });
 
-  const log = new Logger("orchestrator", resolve(bucketDir, "run.log.txt"));
+  const log = new Logger("orchestrator", resolve(artifactsDir, "orchestrator.log.txt"));
 
-  const featuresPath = specPath(bucketDir);
-  const stepsPath = stepsJsonPath(bucketDir);
+  const featuresPath = specPath(artifactsDir);
+  const stepsPath = stepsJsonPath(artifactsDir);
 
   log.info("Starting step-by-step harness", {
     model: config.model,
     maxStepFixRounds: config.maxStepFixRounds,
     maxBudgetUsd: config.maxBudgetUsd,
     outputDir,
-    bucketDir,
+    artifactsDir,
   });
 
   // ── Preconditions ─────────────────────────────────────────────────
@@ -77,7 +75,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
   }
   if (!existsSync(featuresPath)) {
     throw new Error(
-      `${featuresPath} not found. The harness expects spec.md inside the feature bucket.`,
+      `${featuresPath} not found. The harness expects spec.md in the artifacts root.`,
     );
   }
 
@@ -94,7 +92,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     }
 
     const priorSteps = stepsFile.steps.slice(0, i);
-    const stepFolder = stepDir(bucketDir, step);
+    const stepFolder = stepDir(artifactsDir, step);
     mkdirSync(stepFolder, { recursive: true });
 
     // Per-step logger writes to its own log file
@@ -117,14 +115,14 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
 
       // Before re-planning, archive the contract + gate the prior plan produced.
       if (isReplan) {
-        archiveIfExists(stepContractPath(bucketDir, step), replan - 1, stepLog);
-        archiveIfExists(stepVerifySpecPath(bucketDir, step), replan - 1, stepLog);
+        archiveIfExists(stepContractPath(artifactsDir, step), replan - 1, stepLog);
+        archiveIfExists(stepVerifySpecPath(artifactsDir, step), replan - 1, stepLog);
       }
 
       stepLog.info(`── Planner (${isReplan ? `re-plan ${replan}/${config.maxReplanRounds}` : "initial"}) ──`);
       const planStart = Date.now();
       await runStepPlanner(step, priorSteps, config, stepLog, {
-        replanFeedbackPath: isReplan ? stepFeedbackPath(bucketDir, step) : undefined,
+        replanFeedbackPath: isReplan ? stepFeedbackPath(artifactsDir, step) : undefined,
       });
       stepLog.info(`Planner completed in ${((Date.now() - planStart) / 1000 / 60).toFixed(1)} min`);
 
@@ -133,8 +131,8 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
       for (let attempt = 1; attempt <= config.maxStepFixRounds; attempt++) {
         // Archive prior artifacts before they get overwritten
         if (attempt > 1) {
-          archiveIfExists(stepBuildStatusPath(bucketDir, step), attempt - 1, stepLog);
-          archiveIfExists(stepFeedbackPath(bucketDir, step), attempt - 1, stepLog);
+          archiveIfExists(stepBuildStatusPath(artifactsDir, step), attempt - 1, stepLog);
+          archiveIfExists(stepFeedbackPath(artifactsDir, step), attempt - 1, stepLog);
         }
 
         // Adaptive escalation: after a failed first attempt, switch to the
@@ -185,7 +183,7 @@ export async function runHarness({ config }: HarnessOptions): Promise<void> {
     saveSteps(stepsPath, stepsFile);
 
     // Trace distillation ("evolvable" loop): fold durable lessons from this step's
-    // trace into the bucket-level lessons.md. Best-effort — never abort the build.
+    // trace into the root-level lessons.md. Best-effort — never abort the build.
     try {
       stepLog.info(`── Distiller ──`);
       await runStepDistiller(step, config, stepLog);

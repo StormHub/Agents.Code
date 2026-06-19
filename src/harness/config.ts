@@ -41,11 +41,11 @@ export interface HarnessConfig {
   bestOfN: number;
   maxBudgetUsd?: number;
 
+  /** Where the generated application code is built (required). */
   outputDir: string;
+  /** Single artifacts root: holds spec.md, requirements.md, steps.json, lessons.md, the
+   * plan + orchestrator logs, and one folder per step. Explicit path, else `<outputDir>/artifacts`. */
   artifactsDir: string;
-  /** Per-feature bucket under artifactsDir (e.g. `<artifactsDir>/feature-backend-api`).
-   * Contains spec.md, steps.json, and all per-step folders. */
-  bucketDir: string;
 
   /** Load settings from filesystem (user, project, local) */
   settingSources: Array<"user" | "project" | "local">;
@@ -56,7 +56,7 @@ export interface HarnessConfig {
 export function loadConfig(
   overrides: Omit<
     Partial<HarnessConfig>,
-    "maxStepFixRounds" | "maxReplanRounds" | "bestOfN" | "maxBudgetUsd" | "outputDir" | "bucketDir"
+    "maxStepFixRounds" | "maxReplanRounds" | "bestOfN" | "maxBudgetUsd" | "outputDir"
   > & {
     maxStepFixRounds?: string;
     maxReplanRounds?: string;
@@ -64,7 +64,6 @@ export function loadConfig(
     maxBudgetUsd?: string;
   } & {
      outputDir: string;
-     bucketDir: string
   },
 ): HarnessConfig {
   var parsedResult = runOptionSchema.safeParse({
@@ -91,7 +90,6 @@ export function loadConfig(
     ...parsedResult.data,
     outputDir,
     artifactsDir: overrides.artifactsDir ?? resolve(outputDir, "artifacts"),
-    bucketDir: overrides.bucketDir,
     debug: overrides.debug ?? false,
     settingSources: overrides.settingSources ?? ["user", "project", "local"],
   };

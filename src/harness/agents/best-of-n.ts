@@ -35,7 +35,7 @@ export async function runBestOfNGenerator(
 ): Promise<void> {
   const repo = resolve(config.outputDir);
   const n = config.bestOfN;
-  const gateSpecPath = stepVerifySpecPath(resolve(config.bucketDir), step);
+  const gateSpecPath = stepVerifySpecPath(resolve(config.artifactsDir), step);
 
   // Preconditions for worktree isolation.
   const head = git(repo, ["rev-parse", "HEAD"]);

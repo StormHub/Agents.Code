@@ -31,14 +31,14 @@ export async function runStepEvaluator(
   log: Logger,
 ): Promise<EvalVerdict> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const bucketDir = resolve(config.bucketDir);
+  const root = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
-  const folder = stepDir(bucketDir, step);
-  const contractPath = stepContractPath(bucketDir, step);
-  const buildStatusPath = stepBuildStatusPath(bucketDir, step);
-  const feedbackPath = stepFeedbackPath(bucketDir, step);
-  const verifySpecPath = stepVerifySpecPath(bucketDir, step);
+  const folder = stepDir(root, step);
+  const contractPath = stepContractPath(root, step);
+  const buildStatusPath = stepBuildStatusPath(root, step);
+  const feedbackPath = stepFeedbackPath(root, step);
+  const verifySpecPath = stepVerifySpecPath(root, step);
 
   // ── Deterministic gate first ──────────────────────────────────────
   // Any failing check is an authoritative FAIL — record it and skip the agent turn.
@@ -58,7 +58,7 @@ export async function runStepEvaluator(
     return "fail";
   }
 
-  const mcpDir = stepMcpDir(bucketDir, step, "evaluator", attempt);
+  const mcpDir = stepMcpDir(root, step, "evaluator", attempt);
 
   log.agent(
     `Starting step evaluator — step ${step.index} (${step.slug}), round ${attempt}`,

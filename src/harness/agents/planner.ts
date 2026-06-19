@@ -33,18 +33,18 @@ export async function runStepPlanner(
   options: PlannerOptions = {},
 ): Promise<void> {
   const systemPrompt = readFileSync(PROMPT_PATH, "utf-8");
-  const bucketDir = resolve(config.bucketDir);
+  const root = resolve(config.artifactsDir);
   const outputDir = resolve(config.outputDir);
 
-  const requirementsPath = specPath(bucketDir);
-  const folder = stepDir(bucketDir, step);
-  const contractPath = stepContractPath(bucketDir, step);
-  const verifySpecPath = stepVerifySpecPath(bucketDir, step);
-  const lessons = lessonsPath(bucketDir);
+  const requirementsPath = specPath(root);
+  const folder = stepDir(root, step);
+  const contractPath = stepContractPath(root, step);
+  const verifySpecPath = stepVerifySpecPath(root, step);
+  const lessons = lessonsPath(root);
   const isReplan = Boolean(options.replanFeedbackPath);
 
   const priorBuildStatusList = priorSteps
-    .map((s) => `  - Step ${s.index} (${s.title}): ${stepBuildStatusPath(bucketDir, s)}`)
+    .map((s) => `  - Step ${s.index} (${s.title}): ${stepBuildStatusPath(root, s)}`)
     .join("\n");
 
   log.agent(`Starting step planner — step ${step.index} (${step.slug})`, { model: config.model });

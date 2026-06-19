@@ -22,11 +22,11 @@ interface DeriveOptions {
  * the LLM only when missing or `force` is set, so hand-edits survive between runs.
  */
 export async function deriveSteps({ config, log, force = false }: DeriveOptions): Promise<void> {
-  const bucketDir = resolve(config.bucketDir);
-  mkdirSync(bucketDir, { recursive: true });
+  const root = resolve(config.artifactsDir);
+  mkdirSync(root, { recursive: true });
 
-  const requirements = requirementsPath(bucketDir);
-  const stepsPath = stepsJsonPath(bucketDir);
+  const requirements = requirementsPath(root);
+  const stepsPath = stepsJsonPath(root);
 
   // ── Stage 1: spec.md → requirements.md (LLM) ──────────────────────
   if (!existsSync(requirements) || force) {
